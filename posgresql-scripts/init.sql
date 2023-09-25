@@ -30,6 +30,29 @@ create table chanel (
         default false
 );
 
+create type "access" as enum (
+    'owner',
+    'admin',
+    'editor',
+    'member',
+    'banned'
+);
+
+create table chanel_member (
+    chanel_id int references chanel (chanel_id)
+        on delete CASCADE
+        on update CASCADE,
+    user_id int references person (user_id)
+        on delete CASCADE
+        on update CASCADE,
+    date_of_join timestamp with time zone
+        default CURRENT_TIME,
+    type_of_access access not null
+        default 'member',
+    notify_about_meeting bool not null
+        default false
+);
+
 create table meeting (
     meeting_id serial primary key,
     chanel_id int references chanel (chanel_id),
