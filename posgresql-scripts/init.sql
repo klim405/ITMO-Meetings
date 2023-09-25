@@ -17,9 +17,21 @@ create table person (
         default true
 );
 
+create table chanel (
+    chanel_id serial primary key,
+    name varchar(100) not null,
+    description text,
+    rating smallint not null
+        check ( rate >= 0 AND rating <= 5),
+    is_personal bool not null
+        default true,
+    is_require_confirmation bool not null
+        default false,
+);
+
 create table meeting (
     meeting_id serial primary key,
-    organizer_id int references person (user_id) not null,
+    chanel_id int references chanel (chanel_id),
     title varchar(256)                           not null,
     description text,
     start_datetime timestamp with time zone      not null
@@ -63,7 +75,7 @@ create table favorite_category (
 );
 
 create table meeting_category (
-    meeting_id int references user_meeting (meeting_id)
+    meeting_id int references meeting (meeting_id)
         on delete CASCADE
         on update CASCADE,
     category_id int references category (category_id)
@@ -75,10 +87,27 @@ create table meeting_category (
 
 create table feedback (
     feedback_id bigserial primary key,
-    user_id int references person(user_id) not null,
-    meeting_id int references user_meeting(meeting_id) not null,
+    user_id int references person(user_id) 
+        on delete CASCADE
+        on update CASCADE,
+    meeting_id int references meeting(meeting_id) 
+        on delete CASCADE
+        on update CASCADE,
     rate smallint not null
         check ( rate >= 0 AND rate <= 5),
     constraint
         one_feedback_per_user unique (user_id, meeting_id)
+);
+
+create table meeting_member (
+    meeting_id int references meeting(meeting_id) 
+        on delete CASCADE
+        on update CASCADE,,
+    user_id int references person(user_id) 
+        on delete CASCADE
+        on update CASCADE,
+    date_of_join timestamp with time zone      not null
+        check ( date_of_join > CURRENT_TIME ),
+    constraint
+        meeting_member_pk primary key (meeting_id, user_id)
 );
