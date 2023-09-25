@@ -21,8 +21,9 @@ create table chanel (
     chanel_id serial primary key,
     name varchar(100) not null,
     description text,
-    rating smallint not null
-        check ( rating >= 0 AND rating <= 5),
+    rating smallint
+        check ( rating >= 0 AND rating <= 5)
+        default null,
     is_personal bool not null
         default true,
     is_require_confirmation bool not null
