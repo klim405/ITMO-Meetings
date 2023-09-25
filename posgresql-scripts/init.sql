@@ -22,11 +22,11 @@ create table chanel (
     name varchar(100) not null,
     description text,
     rating smallint not null
-        check ( rate >= 0 AND rating <= 5),
+        check ( rating >= 0 AND rating <= 5),
     is_personal bool not null
         default true,
     is_require_confirmation bool not null
-        default false,
+        default false
 );
 
 create table meeting (
@@ -102,7 +102,7 @@ create table feedback (
 create table meeting_member (
     meeting_id int references meeting(meeting_id) 
         on delete CASCADE
-        on update CASCADE,,
+        on update CASCADE,
     user_id int references person(user_id) 
         on delete CASCADE
         on update CASCADE,
