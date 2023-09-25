@@ -17,7 +17,7 @@ create table person (
         default true
 );
 
-create table user_meeting (
+create table meeting (
     meeting_id serial primary key,
     organizer_id int references person (user_id) not null,
     title varchar(256)                           not null,
@@ -51,7 +51,7 @@ create table category (
 --     icon
 );
 
-create table favorite_categories (
+create table favorite_category (
     user_id int references person (user_id)
         on delete CASCADE
         on update CASCADE,
@@ -62,7 +62,7 @@ create table favorite_categories (
         favorite_categories_pk primary key (user_id, category_id)
 );
 
-create table user_meeting_category (
+create table meeting_category (
     meeting_id int references user_meeting (meeting_id)
         on delete CASCADE
         on update CASCADE,
