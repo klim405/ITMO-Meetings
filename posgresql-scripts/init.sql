@@ -46,7 +46,7 @@ create table chanel_member (
         on delete CASCADE
         on update CASCADE,
     date_of_join timestamp with time zone
-        default CURRENT_TIME,
+        default CURRENT_TIMESTAMP,
     type_of_access access not null
         default 'member',
     notify_about_meeting bool not null
@@ -59,7 +59,7 @@ create table meeting (
     title varchar(256)                           not null,
     description text,
     start_datetime timestamp with time zone      not null
-        check ( start_datetime > CURRENT_TIME ),
+        check ( start_datetime > CURRENT_TIMESTAMP ),
     duration interval,
     address varchar(512)                         not null,
     capacity int                                 not null
@@ -106,7 +106,7 @@ create table meeting_category (
         on delete CASCADE
         on update CASCADE,
     constraint
-        favorite_categories_pk primary key (meeting_id, category_id)
+        meeting_category_pk primary key (meeting_id, category_id)
 );
 
 create table feedback (
@@ -131,7 +131,7 @@ create table meeting_member (
         on delete CASCADE
         on update CASCADE,
     date_of_join timestamp with time zone      not null
-        check ( date_of_join > CURRENT_TIME ),
+        check ( date_of_join > CURRENT_TIMESTAMP ),
     constraint
         meeting_member_pk primary key (meeting_id, user_id)
 );
