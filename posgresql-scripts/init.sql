@@ -1,3 +1,8 @@
+create type "sex" as enum (
+    'male',
+    'female'
+);
+
 create table person (
     user_id serial primary key,
     referrer_id int references person (user_id),
@@ -6,6 +11,7 @@ create table person (
     patronymic varchar(20),
     last_name varchar(20) not null,
     other_names varchar(256),
+    sex sex not null,
     age smallint not null,
     telephone varchar(16) not null,
     email varchar(320) not null,
