@@ -15,8 +15,8 @@ create table person (
     age smallint not null,
     telephone varchar(16) not null,
     email varchar(320) unique not null,
-    password varchar(256) not null,
-    pwd_salt char(6) not null,
+    password char(128) not null,
+    pwd_salt char(32) not null,
     is_staff bool not null
         default false,
     is_active bool not null
