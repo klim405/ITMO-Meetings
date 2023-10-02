@@ -14,7 +14,7 @@ create table person (
     sex sex not null,
     age smallint not null,
     telephone varchar(16) not null,
-    email varchar(320) not null,
+    email varchar(320) unique not null,
     password varchar(256) not null,
     pwd_salt char(6) not null,
     is_staff bool not null
