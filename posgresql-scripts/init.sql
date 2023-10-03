@@ -141,3 +141,50 @@ create table meeting_member (
     constraint
         meeting_member_pk primary key (meeting_id, user_id)
 );
+
+create table passport_rf (
+    number bigint  primary key,
+    user_id int references person(user_id)
+        on delete CASCADE
+        on update CASCADE,
+    code int not null,
+    issue_date date not null
+        check (issue_date > CURRENT_DATE ),
+    birth_date date not null
+        check (birth_date > CURRENT_DATE ),
+    who_give text not null
+);
+
+create table country (
+    country_id serial primary key,
+    title varchar(60) not null
+);
+
+create table passport (
+    number varchar(10) not null,
+    country_id int references country(country_id)
+        on delete CASCADE
+        on update CASCADE,
+    user_id int references person(user_id)
+        on delete CASCADE
+        on update CASCADE,
+    issue_date date not null
+        check (issue_date > CURRENT_DATE ),
+    expire_date date not null
+        check (birth_date > CURRENT_DATE ),
+    birth_date date not null
+        check (birth_date > CURRENT_DATE ),
+    birth_place text not null,
+    constraint
+        passport_pk primary key (number, country_id)
+);
+
+create table car (
+    number varchar(10) primary key,
+    user_id int references person(user_id)
+        on delete CASCADE
+        on update CASCADE,
+    country_id int references country(country_id)
+        on delete CASCADE
+        on update CASCADE
+);
