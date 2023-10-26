@@ -2,48 +2,37 @@ import json
 from typing import List
 
 from app.forms.exceptions import ValidationError, ModelFormError
+from app.forms.validators import NotNullValidator, MaxLengthValidator
 
 
 class FormField:
     def __init__(self, attr_name, model_field):
         self.name = attr_name
         self.model_field = model_field
-        self.has_default = model_field.default is not None
 
-    @property
-    def is_unique(self):
-        return self.model_field.unique
+        self._default = None
+        if model_field.default is not None:
+            self._default = model_field.default.arg
 
-    @is_unique.setter
-    def is_unique(self, val):
-        raise AttributeError('is_unique is not writable attribute')
-
-    @property
-    def can_null(self):
-        return self.model_field.nullable
-
-    @can_null.setter
-    def can_null(self, val):
-        raise AttributeError('can_null is not writable attribute')
-
-    @property
-    def validators(self):
+        self.validators = []
         if self.model_field.info is not None:
-            return self.model_field.info.get('validators', [])
-        return []
+            self.validators = self.model_field.info.get('validators', []).copy()
 
-    @validators.setter
-    def validators(self, val):
-        raise AttributeError('validators is not writable attribute')
+        self.is_unique = bool(model_field.unique)
+
+        if not model_field.primary_key and model_field.nullable is False:
+            self.validators.append(NotNullValidator())
+        self.set_type_constrains()
+
+    def set_type_constrains(self):
+        if self.model_field.type.__class__ == 'String':
+            self.validators.append(MaxLengthValidator(self.model_field.type.length))
 
     @property
     def default(self):
-        if self.has_default:
-            if self.model_field.default.is_callable:
-                return self.model_field.default.arg()
-            else:
-                return self.model_field.default.arg
-        return None
+        if callable(self._default):
+            return self._default()
+        return self._default
 
     @default.setter
     def default(self, val):
@@ -58,34 +47,35 @@ class FormField:
         raise AttributeError('python_type is not writable attribute')
 
     def __repr__(self):
-        return f'<FormField {self.name}>'
+        return f'<{self.name} {self.validators}>'
 
 
 class PropertyField:
     def __init__(self, attr_name, python_type, validators=None, can_null=True, default=None):
         self.name = attr_name
         self.python_type = python_type
-        self.can_null = can_null
+        self._default = default
+        self.validators = list() if validators is None else validators
         self.is_unique = False
-        self.default_val = default
-        if validators is None:
-            validators = []
-        self.validators = validators
+        if not can_null:
+            self.validators.append(NotNullValidator())
 
     @property
     def default(self):
-        if callable(self.default_val):
-            return self.default_val()
-        else:
-            return None
+        if callable(self._default):
+            return self._default()
+        return self._default
 
     @default.setter
     def default(self, val):
         raise AttributeError('default is not writable attribute')
 
+    def __repr__(self):
+        return f'<{self.name} {self.validators}>'
+
 
 class ModelFormAPI:
-    """ Класс формы основанный на моделе db.Model.
+    """ Класс формы основанный на модели db.Model.
     Во внутреннем классе Meta необходимо указать класс модели в статическом свойстве model.
     При указании модели будут определены все скалярные поля модели.
     Исключенные поля модели в форме указываются в виде списка в атрибуте Meta.excluded
@@ -114,7 +104,7 @@ class ModelFormAPI:
             raw_value = json_data.get(field.name, field.default)
             self.form_data[field.name] = field.python_type(raw_value) if raw_value is not None else None
             if field.name in self.pk_fields:
-                pk[field.name] = self.form_data[field.name]
+                pk[field.name] = self.form_data.get(field.name, None)
 
         if model_obj is None:
             if 0 < len(pk) < len(self.pk_fields):
@@ -205,38 +195,57 @@ class ModelFormAPI:
                 cls._get_prop_default(prop_name)
             ))
 
-    def validate(self) -> bool:
+    def _validate_unique(self, field) -> bool:
+        if self.form_data[field.name] is None:
+            return True
+
+        obj = self.Meta.model.query.filter_by(**{field.name: self.form_data[field.name]}).first()
         is_valid = True
-        for field in self.form_fields:
-            self._check_null(field)
-            for validator in field.validators:
-                is_valid &= self.validate_field(field.name, validator)
+        if obj is not None:
+            for pk_field_name in self.pk_fields:
+                is_valid &= getattr(obj, pk_field_name) == self.form_data[pk_field_name]
+            if not is_valid:
+                self.validation_errors.setdefault(field.name, []).append('not_null')
         return is_valid
 
-    def _check_null(self, field):
-        if not field.can_null and self.form_data[field.name] is None:
-            is_valid = False
-            self.validation_errors.setdefault(field.name, []).append('not_null')
+    def validate(self) -> bool:
+        """ Производит валидацию данных и возвращает результат проверки,
+            во время валидации формируется словарь с ошибками, который можно получить вызвав get_errors().
+            :return: bool - данные корректны"""
+        is_valid = True
+        for field in self.form_fields:
+            if field.is_unique:
+                is_valid &= self._validate_unique(field)
+            for validator in field.validators:
+                is_valid &= self._validate_field(field.name, validator)
+        return is_valid
 
-    def validate_field(self, field_name, validator) -> bool:
+    def _validate_field(self, field_name, validator) -> bool:
         try:
             return validator.validate(self.form_data[field_name])
         except ValidationError as e:
             self.validation_errors.setdefault(field_name, []).append(e.validation_error)
             return False
 
-    def fill_object(self):
+    def _fill_object(self):
         for k, v in self.form_data.items():
             setattr(self.model_obj, k, v)
 
     def get_object(self):
-        self.fill_object()
+        """ Возвращает экземпляр модели c заполненными полями
+            :return: db.Model """
+        self._fill_object()
         return self.model_obj
 
     def save(self):
-        self.fill_object()
+        """ Сохраняет и возвращает экземпляр модели
+            :return: db.Model """
+        self._fill_object()
         self.model_obj.save()
         return self.model_obj
 
     def get_errors(self):
-        raise self.validation_errors
+        return self.validation_errors
+
+    def __repr__(self):
+        return f'<ModelFormAPI({self.Meta.model.__name__})>'

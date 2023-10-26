@@ -5,7 +5,7 @@ import uuid
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from app import db
-from app.forms.validators import MaxLengthValidator
+from app.forms.validators import RegexValidator, MinValueValidator, EmailValidator
 from app.models.exceptions import AuthTokenError
 from app.models.mixins import DBModelMixin, DBModelAPIMixin
 
@@ -25,7 +25,8 @@ class AuthToken(DBModelMixin, DBModelAPIMixin, db.Model):
     def refresh(self):
         if not self.is_refresh_available:
             raise AuthTokenError('Токен уже был обновлен либо деактивирован.')
-        new_token = AuthToken(user_id=self.user_id)
+        new_token = AuthToken()
+        new_token.user_id = self.user_id
         self.deactivate()
         db.session.add(self)
         db.session.add(new_token)
@@ -45,7 +46,8 @@ class AuthToken(DBModelMixin, DBModelAPIMixin, db.Model):
         return json_dict
 
 
-favorite_category = db.Table('favorite_category',
+favorite_category = db.Table(
+    'favorite_category',
     db.Column('user_id', db.Integer, db.ForeignKey('person.user_id'), primary_key=True),
     db.Column('category_id', db.Integer, db.ForeignKey('category.category_id'), primary_key=True)
 )
@@ -61,26 +63,35 @@ class User(DBModelMixin, db.Model):
     id = db.Column('user_id', db.Integer, primary_key=True)
     referrer_id = db.Column(db.Integer, db.ForeignKey('person.user_id'))
     referrer = db.relationship('User', remote_side=[id])
-    username = db.Column(db.String(20), unique=True, nullable=True, info={'validators': [MaxLengthValidator(20)]})
-    first_name = db.Column(db.String(20), nullable=False, info={'validators': [MaxLengthValidator(20)]})
-    patronymic = db.Column(db.String(20), nullable=True, info={'validators': [MaxLengthValidator(20)]})
-    last_name = db.Column(db.String(20), nullable=False, info={'validators': [MaxLengthValidator(20)]})
-    other_names = db.Column(db.String(256), nullable=False, info={'validators': [MaxLengthValidator(256)]})
+    username = db.Column(db.String(20), unique=True, nullable=True,
+                         info={'validators': [RegexValidator(r'\w{3,20}')]})
+    first_name = db.Column(db.String(20), nullable=False,
+                           info={'validators': [RegexValidator(r'[А-Яа-яA-Za-z\-]{1,20}')]})
+    patronymic = db.Column(db.String(20), nullable=True,
+                           info={'validators': [RegexValidator(r'[А-Яа-яA-Za-z\-]{3,20}')]})
+    last_name = db.Column(db.String(20), nullable=False,
+                          info={'validators': [RegexValidator(r'[А-Яа-яA-Za-z\-]{3,20}')]})
+    other_names = db.Column(db.String(256), nullable=True,
+                            info={'validators': [RegexValidator(r'[А-Яа-яA-Za-z\-\s]{3,256}')]})
     sex = db.Column(db.Enum(Sex), nullable=False)
-    age = db.Column(db.Integer, nullable=False)
-    telephone = db.Column(db.String(16), nullable=False, info={'validators': [MaxLengthValidator(20)]})
-    email = db.Column(db.String(320), nullable=False, info={'validators': [MaxLengthValidator(320)]})
+    age = db.Column(db.Integer, nullable=False,
+                    info={'validators': [MinValueValidator(0)]})
+    telephone = db.Column(db.String(16), nullable=False,
+                          info={'validators': [RegexValidator(r'\+[\d]{11,15}')]})
+    email = db.Column(db.String(320), nullable=False,
+                      info={'validators': [EmailValidator()]})
     password_hash = db.Column(db.String(182), nullable=False)
     is_staff = db.Column(db.Boolean, nullable=False, default=False)
-    # todo: Возможно стоит установить default=False
     is_active = db.Column(db.Boolean, nullable=False, default=True)
 
     favorite_categories = db.relationship('Category', secondary=favorite_category, lazy='subquery',
                                           backref=db.backref('users', lazy='subquery'))
     auth_tokens = db.relationship('AuthToken', lazy='select', cascade="all,delete",
                                   backref=db.backref('user', lazy='subquery'))
-    # todo: relationship with chanel
-    # chanels = db.relationship('Chanel', secondary=)
+    chanel_members = db.relationship('ChanelMember', lazy='select', cascade="all,delete",
+                                     backref=db.backref('chanel', lazy='subquery'))
+    feedbacks = db.relationship('Feedback', lazy='select', cascade="all,delete",
+                                backref=db.backref('user', lazy='subquery'))
 
     def __init__(self, *args, **kwargs):
         pwd = kwargs.pop('password') if 'password' in kwargs else None
@@ -109,7 +120,8 @@ class User(DBModelMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def gen_auth_token(self) -> AuthToken:
-        token = AuthToken(user_id=self.id)
+        token = AuthToken()
+        token.user_id = self.id
         token.save()
         return token
 
@@ -152,7 +164,8 @@ class Chanel(DBModelMixin, db.Model):
     rating = db.Column(db.Integer, nullable=True)
     is_personal = db.Column(db.Boolean, nullable=False, default=True)
     is_require_confirmation = db.Column(db.Boolean, nullable=False, default=False)
-    members = db.relationship('ChanelMember', backref='chanel', lazy=True)
+    chanel_members = db.relationship('ChanelMember', lazy='select', cascade="all,delete",
+                                     backref=db.backref('chanel', lazy='subquery'))
 
     def to_json(self):
         json_dict = {
@@ -179,8 +192,8 @@ class ChanelMember(DBModelMixin, db.Model):
     __tablename__ = 'chanel_member'
     chanel_id = db.Column('chanel_id', db.Integer, db.ForeignKey('chanel.chanel_id'), primary_key=True)
     user_id = db.Column('user_id', db.Integer, db.ForeignKey('person.user_id'), primary_key=True)
-    # todo: nullable=False
-    date_of_join = db.Column(db.DateTime(timezone=True), default=datetime.utcnow())
+
+    date_of_join = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
     type_of_access = db.Column(db.Enum(Access), nullable=False, default=Access.MEMBER)
     notify_about_meeting = db.Column(db.Boolean, nullable=False, default=False)
 
@@ -194,13 +207,15 @@ class ChanelMember(DBModelMixin, db.Model):
         return json_dict
 
 
-meeting_category = db.Table('meeting_category',
+meeting_category = db.Table(
+    'meeting_category',
     db.Column('meeting_id', db.Integer, db.ForeignKey('meeting.meeting_id'), primary_key=True),
     db.Column('category_id', db.Integer, db.ForeignKey('category.category_id'), primary_key=True)
 )
 
 
-meeting_member = db.Table('meeting_member',
+meeting_member = db.Table(
+    'meeting_member',
     db.Column('meeting_id', db.Integer, db.ForeignKey('meeting.meeting_id'), primary_key=True),
     db.Column('user_id', db.Integer, db.ForeignKey('person.user_id'), primary_key=True)
 )
@@ -247,12 +262,13 @@ class Meeting(DBModelMixin, db.Model):
     )
     only_for_itmo_students = db.Column(db.Boolean, nullable=False, default=False)
     only_for_russians = db.Column(db.Boolean, nullable=False, default=False)
-    # todo: rating
 
     members = db.relationship('User', secondary=meeting_member, lazy='subquery',
                               backref=db.backref('meetings', lazy=True))
     categories = db.relationship('Category', secondary=meeting_category, lazy='subquery',
                                  backref=db.backref('meetings', lazy=True))
+    feedbacks = db.relationship('Feedback', lazy='select', cascade="all,delete",
+                                backref=db.backref('meeting', lazy='subquery'))
 
 
 class Feedback(DBModelMixin, db.Model):
