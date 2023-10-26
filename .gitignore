@@ -1,3 +1,8 @@
 venv
 .idea
-backend
+.run
+docs/backend
+backend/tests
+backend/README.md
+backend/.pgpass
+backend/init_environ.sh

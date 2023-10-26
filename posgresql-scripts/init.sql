@@ -15,8 +15,7 @@ create table person (
     age smallint not null,
     telephone varchar(16) not null,
     email varchar(320) unique not null,
-    password char(128) not null,
-    pwd_salt char(32) not null,
+    password_hash char(182) not null,
     is_staff bool not null
         default false,
     is_active bool not null
@@ -62,16 +61,16 @@ create table chanel_member (
 create table meeting (
     meeting_id serial primary key,
     chanel_id int references chanel (chanel_id),
-    title varchar(256)                           not null,
+    title varchar(256) not null,
     description text,
-    start_datetime timestamp with time zone      not null
+    start_datetime timestamp with time zone not null
         check ( start_datetime > CURRENT_TIMESTAMP ),
     duration interval,
-    address varchar(512)                         not null,
-    capacity int                                 not null
+    address varchar(512) not null,
+    capacity int not null
         check ( capacity > 0 )
         default 4,
-    price int                                    not null
+    price int not null
         check ( price >= 0 )
         default 0,
     minimum_age smallint not null
@@ -84,13 +83,13 @@ create table meeting (
         default false,
     only_for_russians bool not null
         default false
---     rating
+--  todo: rating
 );
 
 create table category (
     category_id serial primary key,
     title varchar(20) not null
---     icon
+--  todo: icon
 );
 
 create table favorite_category (
@@ -139,7 +138,7 @@ create table meeting_member (
     date_of_join timestamp with time zone      not null
         check ( date_of_join > CURRENT_TIMESTAMP ),
     constraint
-        meeting_member_pk primary key (meeting_id, user_id)
+        meeting_member_pk unique (meeting_id, user_id)
 );
 
 create table passport_rf (
