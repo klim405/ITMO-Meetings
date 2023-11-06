@@ -6,6 +6,8 @@ from app.forms.validators import NotNullValidator, MaxLengthValidator
 
 
 class FormField:
+    """ Класс описывает поле формы и содержит валидаторы. """
+
     def __init__(self, attr_name, model_field):
         self.name = attr_name
         self.model_field = model_field
@@ -125,6 +127,7 @@ class ModelFormAPI:
 
     @classmethod
     def _get_prop_type(cls, prop_name):
+        """ Вызывает cls.get_{имя свойства}_type и возвращает тип указанного свойства. """
         try:
             return getattr(cls, f'get_{prop_name}_type')()
         except AttributeError:
@@ -132,6 +135,7 @@ class ModelFormAPI:
 
     @classmethod
     def _get_prop_default(cls, prop_name):
+        """ Вызывает cls.get_{имя свойства}_default и возвращает значение по умолчанию указанного свойства. """
         try:
             return getattr(cls, f'get_{prop_name}_default')()
         except AttributeError:
@@ -139,6 +143,7 @@ class ModelFormAPI:
 
     @classmethod
     def _get_prop_validators(cls, prop_name):
+        """ Вызывает cls.get_{имя свойства}_validators и возвращает валидаторы указанного свойства. """
         try:
             return getattr(cls, f'get_{prop_name}_validators')()
         except AttributeError:
@@ -146,6 +151,7 @@ class ModelFormAPI:
 
     @classmethod
     def _init_meta(cls):
+        """ Инициализирует переопределенный класс meta, добавляя неуказанные атрибуты. """
         attrs = list(filter(lambda x: x[0] != '_', dir(cls.Meta)))
         if 'fields' not in attrs:
             setattr(cls.Meta, 'fields', [])
@@ -154,35 +160,41 @@ class ModelFormAPI:
 
     @classmethod
     def _init_form_fields(cls):
+        """ Инициализирует массив полей формы используя рефлексию указанной модели (Meta.model). """
         cls._init_meta()
         if cls.form_fields is None:
             cls.form_fields = []
-
+            cls.Meta.model()
             attrs = cls.Meta.fields if cls.Meta.fields else filter(lambda x: x[0] != '_', dir(cls.Meta.model))
             for attr_name in attrs:
-                if attr_name in cls.Meta.excluded:
-                    continue
-                cls.Meta.model()
                 attr_obj = getattr(cls.Meta.model, attr_name)
                 if cls._is_db_attr(attr_obj):
-                    cls._init_db_field(attr_name, attr_obj)
+                    if attr_obj.primary_key:
+                        cls.pk_fields.append(attr_name)
+                    if attr_name in cls.Meta.excluded:
+                        continue
+                    cls._init_form_field(attr_name, attr_obj)
+
                 elif cls._is_prop_attr(attr_name, attr_obj):
+                    if attr_name in cls.Meta.excluded:
+                        continue
                     cls._init_prop_field(attr_name)
 
     @staticmethod
-    def _is_db_attr(attr_obj):
+    def _is_db_attr(attr_obj) -> bool:
+        """ Проверка является ли полем модели значение атрибута класса модели. """
         return attr_obj.__class__.__name__ == 'InstrumentedAttribute' \
                and attr_obj.impl.__class__.__name__ == 'ScalarAttributeImpl'
 
     @classmethod
-    def _init_db_field(cls, attr_name, attr_obj):
+    def _init_form_field(cls, attr_name, attr_obj):
+        """ Инициализирует поле формы и добавляет его в форму. """
         form_field = FormField(attr_name, attr_obj)
         cls.form_fields.append(form_field)
-        if attr_obj.primary_key:
-            cls.pk_fields.append(attr_name)
 
     @classmethod
     def _is_prop_attr(cls, attr_name, attr_obj):
+        """ Проверяет являться ли атрибут модели свойством. """
         return attr_obj.__class__.__name__ == 'property' and cls._get_prop_type(attr_name)
 
     @classmethod
@@ -202,8 +214,10 @@ class ModelFormAPI:
         obj = self.Meta.model.query.filter_by(**{field.name: self.form_data[field.name]}).first()
         is_valid = True
         if obj is not None:
+            print('!validate', field)
             for pk_field_name in self.pk_fields:
-                is_valid &= getattr(obj, pk_field_name) == self.form_data[pk_field_name]
+                print('!check', field, getattr(obj, pk_field_name), '==', getattr(self.model_obj, pk_field_name))
+                is_valid &= getattr(obj, pk_field_name) == getattr(self.model_obj, pk_field_name)
             if not is_valid:
                 self.validation_errors.setdefault(field.name, []).append('not_null')
         return is_valid
