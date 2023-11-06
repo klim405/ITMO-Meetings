@@ -13,7 +13,7 @@ create table person (
     other_names varchar(256),
     sex sex not null,
     age smallint not null,
-    telephone varchar(16) not null,
+    telephone varchar(16) unique not null,
     email varchar(320) unique not null,
     password_hash char(182) not null,
     is_staff bool not null
