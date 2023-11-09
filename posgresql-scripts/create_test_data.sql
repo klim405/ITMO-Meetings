@@ -14,11 +14,13 @@ insert into chanel (name)
            ('scot chanel'),
            ('styles chanel');
 
-insert into chanel_member (chanel_id, user_id, type_of_access)
+insert into chanel_member (chanel_id, user_id, permissions)
     values
-        (1, 1, 'owner'),
-        (2, 2, 'owner'),
-        (3, 3, 'owner'),
-        (2, 1, 'member'),
-        (2, 3, 'member');
+        (1, 1, 0),
+        (2, 2, 0),
+        (3, 3, 0),
+        (2, 1, 0),
+        (2, 3, 0);
+
+delete from chanel_member where chanel_id = 2 and user_id = 3;
 

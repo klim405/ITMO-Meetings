@@ -32,7 +32,10 @@ create table chanel (
     chanel_id serial primary key,
     name varchar(100) not null,
     description text,
-    rating smallint
+    members_cnt integer not null
+        check ( members_cnt >= 0 )
+        default 0,
+    rating float
         check ( rating >= 0 AND rating <= 5)
         default null,
     is_personal bool not null
@@ -64,6 +67,32 @@ create table chanel_member (
 create index chanel_member_pk on chanel_member (chanel_id, user_id);
 create index chanel_member_permissions on chanel_member (permissions);
 
+-- Триггеры и функции для подсчета подписчиков
+create function inc_members_cnt_trigger_func() returns trigger as $$
+    begin
+        update chanel
+            set members_cnt = (select members_cnt from chanel
+                               where chanel_id = new.chanel_id) + 1
+            where chanel.chanel_id = new.chanel_id;
+        return null;
+    end;
+    $$ language plpgsql;
+
+create trigger chanel_member_insert after insert on chanel_member
+    for each row execute procedure inc_members_cnt_trigger_func();
+
+create function dec_members_cnt_trigger_func() returns trigger as $$
+    begin
+        update chanel
+            set members_cnt = (select members_cnt from chanel
+                               where chanel_id = old.chanel_id) - 1
+            where chanel.chanel_id = old.chanel_id;
+        return null;
+    end;
+    $$ language plpgsql;
+
+create trigger chanel_member_delete after delete on chanel_member
+    for each row execute procedure dec_members_cnt_trigger_func();
 
 create table meeting (
     meeting_id serial primary key,
@@ -89,8 +118,8 @@ create table meeting (
     only_for_itmo_students bool not null
         default false,
     only_for_russians bool not null
-        default false
---  todo: rating
+        default false,
+    rating float
 );
 
 create index meeting_pk on meeting (meeting_id);
@@ -104,6 +133,61 @@ create index meeting_minimum_age on meeting (minimum_age);
 create index meeting_maximum_age on meeting (maximum_age);
 create index meeting_for_itmo_students on meeting (only_for_itmo_students);
 create index meeting_for_russians on meeting (only_for_russians);
+
+
+create table feedback (
+    user_id int references person(user_id)
+        on delete CASCADE
+        on update CASCADE,
+    meeting_id int references meeting(meeting_id)
+        on delete CASCADE
+        on update CASCADE,
+    rate smallint not null
+        check ( rate >= 0 AND rate <= 5),
+    constraint
+        one_feedback_per_user unique (user_id, meeting_id)
+);
+
+create index feedback_pk on feedback (user_id, meeting_id);
+
+-- Процедура и триггеры для вычисление рейтинга события (meeting) на основе отзывов
+create function calc_meeting_rating_trigger_func() returns trigger as $$
+    begin
+        if (TG_OP = 'DELETE') then
+            update meeting
+                set rating = (select avg(rate) from feedback where meeting_id = old.meeting_id)
+                where meeting_id = old.meeting_id;
+        else
+            update meeting
+                set rating = (select avg(rate) from feedback where meeting_id = new.meeting_id)
+                where meeting_id = new.meeting_id;
+        end if;
+        return null;
+    end;
+    $$ language plpgsql;
+
+create trigger feedback_insert after insert or update or delete on feedback
+    for each row execute procedure calc_meeting_rating_trigger_func();
+
+
+-- Процедура и триггеры для вычисление рейтинга канала (chanel) на основе отзывов
+create function calc_chanel_rating_func() returns trigger as $$
+    begin
+        if (TG_OP = 'DELETE') then
+            update chanel
+                set rating = (select avg(rating) from meeting where chanel_id = new.chanel_id)
+                where chanel_id = new.chanel_id;
+        else
+            update chanel
+                set rating = (select avg(rating) from meeting where chanel_id = new.chanel_id)
+                where chanel_id = new.chanel_id;
+        end if;
+        return null;
+    end;
+    $$ language plpgsql;
+
+create trigger meeting_insert after insert or update or delete on meeting
+    for each row execute procedure calc_chanel_rating_func();
 
 
 create table category (
@@ -140,23 +224,7 @@ create table meeting_category (
         meeting_category_pk primary key (meeting_id, category_id)
 );
 
-create index meeting_category_pk on meeting_category (meeting_id, category_id);
-
-
-create table feedback (
-    user_id int references person(user_id) 
-        on delete CASCADE
-        on update CASCADE,
-    meeting_id int references meeting(meeting_id) 
-        on delete CASCADE
-        on update CASCADE,
-    rate smallint not null
-        check ( rate >= 0 AND rate <= 5),
-    constraint
-        one_feedback_per_user unique (user_id, meeting_id)
-);
-
-create index feedback_pk on feedback (user_id, meeting_id);
+create index meeting_category_pk_idx on meeting_category (meeting_id, category_id);
 
 
 create table meeting_member (
@@ -172,7 +240,7 @@ create table meeting_member (
         meeting_member_pk unique (meeting_id, user_id)
 );
 
-create index meeting_member_pk on meeting_member (meeting_id, user_id);
+create index meeting_member_pk_idx on meeting_member (meeting_id, user_id);
 
 
 create table passport_rf (
