@@ -9,3 +9,6 @@ create table auth_token (
         on update CASCADE
         on delete CASCADE
 );
+
+create index auth_token_pk on auth_token (access_token);
+create index refresh_token_idx on auth_token (refresh_token);
