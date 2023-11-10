@@ -28,8 +28,8 @@ create index person_telephone on person (telephone);
 create index person_email on person (email);
 
 
-create table chanel (
-    chanel_id serial primary key,
+create table channel (
+    channel_id serial primary key,
     name varchar(100) not null,
     description text,
     members_cnt integer not null
@@ -44,13 +44,13 @@ create table chanel (
         default false
 );
 
-create index chanel_pk on chanel (chanel_id);
-create index chanel_name on chanel (name);
-create index chanel_rating on chanel (rating);
+create index channel_pk on channel (channel_id);
+create index channel_name on channel (name);
+create index channel_rating on channel (rating);
 
 
-create table chanel_member (
-    chanel_id int references chanel (chanel_id)
+create table channel_member (
+    channel_id int references channel (channel_id)
         on delete CASCADE
         on update CASCADE,
     user_id int references person (user_id)
@@ -64,39 +64,39 @@ create table chanel_member (
         default false
 );
 
-create index chanel_member_pk on chanel_member (chanel_id, user_id);
-create index chanel_member_permissions on chanel_member (permissions);
+create index channel_member_pk on channel_member (channel_id, user_id);
+create index channel_member_permissions on channel_member (permissions);
 
 -- Триггеры и функции для подсчета подписчиков
 create function inc_members_cnt_trigger_func() returns trigger as $$
     begin
-        update chanel
-            set members_cnt = (select members_cnt from chanel
-                               where chanel_id = new.chanel_id) + 1
-            where chanel.chanel_id = new.chanel_id;
+        update channel
+            set members_cnt = (select members_cnt from channel
+                               where channel_id = new.channel_id) + 1
+            where channel.channel_id = new.channel_id;
         return null;
     end;
     $$ language plpgsql;
 
-create trigger chanel_member_insert after insert on chanel_member
+create trigger channel_member_insert after insert on channel_member
     for each row execute procedure inc_members_cnt_trigger_func();
 
 create function dec_members_cnt_trigger_func() returns trigger as $$
     begin
-        update chanel
-            set members_cnt = (select members_cnt from chanel
-                               where chanel_id = old.chanel_id) - 1
-            where chanel.chanel_id = old.chanel_id;
+        update channel
+            set members_cnt = (select members_cnt from channel
+                               where channel_id = old.channel_id) - 1
+            where channel.channel_id = old.channel_id;
         return null;
     end;
     $$ language plpgsql;
 
-create trigger chanel_member_delete after delete on chanel_member
+create trigger channel_member_delete after delete on channel_member
     for each row execute procedure dec_members_cnt_trigger_func();
 
 create table meeting (
     meeting_id serial primary key,
-    chanel_id int references chanel (chanel_id),
+    channel_id int references channel (channel_id),
     title varchar(256) not null,
     description text,
     start_datetime timestamp with time zone not null
@@ -123,7 +123,7 @@ create table meeting (
 );
 
 create index meeting_pk on meeting (meeting_id);
-create index meeting_chanel_id on meeting (chanel_id);
+create index meeting_channel_id on meeting (channel_id);
 create index meeting_title on meeting (title);
 create index meeting_start_time on meeting (start_datetime);
 create index meeting_address on meeting (address);
@@ -170,24 +170,24 @@ create trigger feedback_insert after insert or update or delete on feedback
     for each row execute procedure calc_meeting_rating_trigger_func();
 
 
--- Процедура и триггеры для вычисление рейтинга канала (chanel) на основе отзывов
-create function calc_chanel_rating_func() returns trigger as $$
+-- Процедура и триггеры для вычисление рейтинга канала (channel) на основе отзывов
+create function calc_channel_rating_func() returns trigger as $$
     begin
         if (TG_OP = 'DELETE') then
-            update chanel
-                set rating = (select avg(rating) from meeting where chanel_id = new.chanel_id)
-                where chanel_id = new.chanel_id;
+            update channel
+                set rating = (select avg(rating) from meeting where channel_id = new.channel_id)
+                where channel_id = new.channel_id;
         else
-            update chanel
-                set rating = (select avg(rating) from meeting where chanel_id = new.chanel_id)
-                where chanel_id = new.chanel_id;
+            update channel
+                set rating = (select avg(rating) from meeting where channel_id = new.channel_id)
+                where channel_id = new.channel_id;
         end if;
         return null;
     end;
     $$ language plpgsql;
 
 create trigger meeting_insert after insert or update or delete on meeting
-    for each row execute procedure calc_chanel_rating_func();
+    for each row execute procedure calc_channel_rating_func();
 
 
 create table category (
@@ -299,4 +299,22 @@ create table car (
         on update CASCADE
 );
 
-create index car_user_id on car (user_id);
+
+create or replace function create_personal_channel(in ch_name varchar(100), out integer) as $$
+    insert into channel (name, is_personal) values (ch_name, true) returning channel_id;
+$$ language sql;
+
+
+create or replace function insert_person_trigger_func() returns trigger as $$
+    declare
+        last_id integer;
+    begin
+        last_id = create_personal_channel(trim(to_char(new.user_id, '9999999999')));
+        insert into channel_member (channel_id, user_id, permissions) values
+            (last_id, new.user_id, 127);
+        return null;
+    end;
+    $$ language plpgsql;
+
+create trigger f after insert on person
+    for each row execute procedure insert_person_trigger_func()
