@@ -1,4 +1,4 @@
-insert into person (referrer_id, username, first_name, patronymic, last_name, other_names,
+insert into person (referrer_id, username, firstname, patronymic, surname, other_names,
                     sex, age, telephone, email, password_hash)
     values
         (null, 'user1', 'elison', null, 'argent', null,
@@ -8,13 +8,13 @@ insert into person (referrer_id, username, first_name, patronymic, last_name, ot
         (null, 'user3', 'styles', null, 'stilinsky', null,
          'male', 18, '+79995559933', 'stilinsky@mail.ru', 'pbkdf2:sha512:600000$syIOmnlgZtcd8cWepl69R83lYFGowP0o$3e40a2fc6eb55a5087dac98ce7ed57ac9179a7b1e2dc675095a7cf6b729c4c8afbf019ed761f1c3a511df10b7a3e192d8791bf25b1a73b7a05f7fd32aabf00ac');
 
-insert into chanel (name)
+insert into channel (name)
     values
-           ('elison chanel'),
-           ('scot chanel'),
-           ('styles chanel');
+           ('elison channel'),
+           ('scot channel'),
+           ('styles channel');
 
-insert into chanel_member (chanel_id, user_id, permissions)
+insert into channel_member (channel_id, user_id, permissions)
     values
         (1, 1, 0),
         (2, 2, 0),
@@ -22,5 +22,5 @@ insert into chanel_member (chanel_id, user_id, permissions)
         (2, 1, 0),
         (2, 3, 0);
 
-delete from chanel_member where chanel_id = 2 and user_id = 3;
+delete from channel_member where channel_id = 2 and user_id = 3;
 

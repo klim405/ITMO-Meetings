@@ -7,15 +7,17 @@ create table person (
     user_id serial primary key,
     referrer_id int references person (user_id),
     username varchar(20) unique,
-    first_name varchar(20) not null,
+    firstname varchar(20) not null,
     patronymic varchar(20),
-    last_name varchar(20) not null,
+    surname varchar(20) not null,
     other_names varchar(256),
     sex sex not null,
     age smallint not null,
     telephone varchar(16) unique not null,
     email varchar(320) unique not null,
     password_hash char(182) not null,
+    confidentiality integer not null
+        default 418,
     is_staff bool not null
         default false,
     is_active bool not null
@@ -305,7 +307,7 @@ create or replace function create_personal_channel(in ch_name varchar(100), out 
 $$ language sql;
 
 
-create or replace function insert_person_trigger_func() returns trigger as $$
+create function insert_person_trigger_func() returns trigger as $$
     declare
         last_id integer;
     begin
