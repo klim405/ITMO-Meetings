@@ -1,13 +1,22 @@
 import json
 
+from flask import abort
+
 from app import db
 from app.models.exceptions import DBAttributeError
 
 
 class DBModelMixin:
     @classmethod
-    def get(cls, pk):
+    def get(cls, *pk):
         return db.session.get(cls, pk)
+
+    @classmethod
+    def get_or_404(cls, *pk):
+        obj = cls.get(*pk)
+        if obj is None:
+            raise abort(404)
+        return obj
 
     def save(self):
         db.session.add(self)

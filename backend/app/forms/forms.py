@@ -104,7 +104,11 @@ class ModelFormAPI:
         self.form_data = {}
         for field in self.form_fields:
             raw_value = json_data.get(field.name, field.default)
-            self.form_data[field.name] = field.python_type(raw_value) if raw_value is not None else None
+            try:
+                self.form_data[field.name] = field.python_type(raw_value) if raw_value is not None else None
+            except ValueError:
+                self.form_data[field.name] = None
+                self.validation_errors.setdefault(field.name, []).append('invalid_type')
             if field.name in self.pk_fields:
                 pk[field.name] = self.form_data.get(field.name, None)
 
@@ -214,19 +218,17 @@ class ModelFormAPI:
         obj = self.Meta.model.query.filter_by(**{field.name: self.form_data[field.name]}).first()
         is_valid = True
         if obj is not None:
-            print('!validate', field)
             for pk_field_name in self.pk_fields:
-                print('!check', field, getattr(obj, pk_field_name), '==', getattr(self.model_obj, pk_field_name))
                 is_valid &= getattr(obj, pk_field_name) == getattr(self.model_obj, pk_field_name)
             if not is_valid:
-                self.validation_errors.setdefault(field.name, []).append('not_null')
+                self.validation_errors.setdefault(field.name, []).append('not_unique')
         return is_valid
 
     def validate(self) -> bool:
         """ Производит валидацию данных и возвращает результат проверки,
             во время валидации формируется словарь с ошибками, который можно получить вызвав get_errors().
             :return: bool - данные корректны"""
-        is_valid = True
+        is_valid = not bool(self.validation_errors)
         for field in self.form_fields:
             if field.is_unique:
                 is_valid &= self._validate_unique(field)

@@ -2,6 +2,10 @@ class AuthTokenError(Exception):
     pass
 
 
+class ModelError(Exception):
+    pass
+
+
 class DBMixinError(Exception):
     pass
 
