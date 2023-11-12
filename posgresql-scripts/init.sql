@@ -41,7 +41,7 @@ create table channel (
         check ( rating >= 0 AND rating <= 5)
         default null,
     is_personal bool not null
-        default true,
+        default false,
     is_require_confirmation bool not null
         default false
 );
@@ -313,7 +313,7 @@ create function insert_person_trigger_func() returns trigger as $$
     begin
         last_id = create_personal_channel(trim(to_char(new.user_id, '9999999999')));
         insert into channel_member (channel_id, user_id, permissions) values
-            (last_id, new.user_id, 95);
+            (last_id, new.user_id, 191);
         return null;
     end;
     $$ language plpgsql;
