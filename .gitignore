@@ -2,6 +2,6 @@ venv
 .idea
 .run
 docs/backend
-backend/tests
 backend/.pgpass
 backend/init_environ.sh
+/backend/tests/api/http_test.sh
