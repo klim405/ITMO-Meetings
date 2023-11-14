@@ -3,5 +3,4 @@ venv
 .run
 docs/backend
 backend/.pgpass
-backend/init_environ.sh
 /backend/tests/api/http_test.sh
