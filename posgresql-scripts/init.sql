@@ -1,4 +1,4 @@
-create type "sex" as enum (
+create type gender as enum (
     'male',
     'female'
 );
@@ -11,9 +11,9 @@ create table person (
     patronymic varchar(20),
     surname varchar(20) not null,
     other_names varchar(256),
-    sex sex not null,
-    age smallint not null,
-    telephone varchar(16) unique not null,
+    gender gender not null,
+    date_of_birth date not null,
+    telephone varchar(64) unique not null,
     email varchar(320) unique not null,
     password_hash char(182) not null,
     confidentiality integer not null
@@ -236,8 +236,8 @@ create table meeting_member (
     user_id int references person(user_id) 
         on delete CASCADE
         on update CASCADE,
-    date_of_join timestamp with time zone      not null
-        check ( date_of_join > CURRENT_TIMESTAMP ),
+    date_of_join timestamp with time zone not null
+        default CURRENT_TIMESTAMP,
     constraint
         meeting_member_pk unique (meeting_id, user_id)
 );

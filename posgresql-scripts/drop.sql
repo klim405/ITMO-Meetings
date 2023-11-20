@@ -1,4 +1,4 @@
-drop type if exists "sex" cascade;
+drop type if exists gender cascade;
 
 drop table if exists channel_member cascade;
 drop table if exists feedback cascade;
