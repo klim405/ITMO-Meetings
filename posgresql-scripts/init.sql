@@ -42,8 +42,10 @@ create table channel (
         default null,
     is_personal bool not null
         default false,
-    is_require_confirmation bool not null
-        default false
+    is_public bool not null
+        default true,
+    is_active bool not null
+        default true
 );
 
 create index channel_pk on channel (channel_id);
@@ -62,6 +64,8 @@ create table channel_member (
         default CURRENT_TIMESTAMP,
     permissions integer not null
         default 0,
+    is_owner bool not null
+        default false,
     notify_about_meeting bool not null
         default false
 );
@@ -121,7 +125,9 @@ create table meeting (
         default false,
     only_for_russians bool not null
         default false,
-    rating float
+    rating float,
+    is_public bool not null
+        default true
 );
 
 create index meeting_pk on meeting (meeting_id);
@@ -312,8 +318,8 @@ create function insert_person_trigger_func() returns trigger as $$
         last_id integer;
     begin
         last_id = create_personal_channel(trim(to_char(new.user_id, '9999999999')));
-        insert into channel_member (channel_id, user_id, permissions) values
-            (last_id, new.user_id, 191);
+        insert into channel_member (channel_id, user_id, permissions, is_owner) values
+            (last_id, new.user_id, 125, true);
         return null;
     end;
     $$ language plpgsql;

@@ -2,6 +2,4 @@ venv
 .idea
 .run
 docs/backend
-backend/.pgpass
-/backend/tests/api/http_test.sh
-backend2
+backend/README.md
