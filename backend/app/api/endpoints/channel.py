@@ -85,7 +85,9 @@ def recovery_channel(
     )
 
 
-@router.post('/{channel_id}/subscribe/', response_model=ReadChannelMember)
+@router.post('/{channel_id}/subscribe/',
+             tags=['channel members'],
+             response_model=ReadChannelMember)
 def subscribe(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -108,7 +110,9 @@ def subscribe(
     )
 
 
-@router.get('/{channel_id}/member/list/', response_model=List[ReadChannelMember])
+@router.get('/{channel_id}/member/list/',
+            tags=['channel members'],
+            response_model=List[ReadChannelMember])
 def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -128,7 +132,9 @@ def members(
                              ChannelMember.permissions != 0)
 
 
-@router.patch('/{channel_id}/member/{member_id}/confirm/', response_model=ReadChannelMember)
+@router.patch('/{channel_id}/member/{member_id}/confirm/',
+              tags=['channel members'],
+              response_model=ReadChannelMember)
 def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -144,7 +150,9 @@ def members(
     return target_member
 
 
-@router.patch('/{channel_id}/member/{member_id}/role/', response_model=ReadChannelMember)
+@router.patch('/{channel_id}/member/{member_id}/role/',
+              tags=['channel members'],
+              response_model=ReadChannelMember)
 def edit_channel_member(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -171,7 +179,9 @@ def edit_channel_member(
     return target_member
 
 
-@router.patch('/{channel_id}/member/{member_id}/make-owner/', response_model=ReadChannelMember)
+@router.patch('/{channel_id}/member/{member_id}/make-owner/',
+              tags=['channel members'],
+              response_model=ReadChannelMember)
 def edit_channel_member(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -196,7 +206,7 @@ def edit_channel_member(
     return target_member
 
 
-@router.delete('/{channel_id}/subscribe/')
+@router.delete('/{channel_id}/subscribe/', tags=['channel members'],)
 def unsubscribe(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
