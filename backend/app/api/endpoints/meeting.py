@@ -3,13 +3,13 @@ from typing import Annotated, List
 from fastapi import APIRouter, Path, HTTPException, status
 
 from app.api.deps import get_current_channel_member
-from app.auth.deps import CurrentUserDep, login_required
+from app.auth.deps import CurrentUserDep
 from app.database.deps import DBSessionDep
 from app.database.utils import get_or_404
 from app.models import Meeting
 from app.models.channel_member import Permission
 from app.schemas.meeting import ReadMeeting, CreateMeeting, UpdateMeeting
-from app.schemas.user import ReadUser, ReadOpenUserInfo, get_open_user_info
+from app.schemas.user import ReadOpenUserInfo, get_open_user_info
 
 router = APIRouter()
 
