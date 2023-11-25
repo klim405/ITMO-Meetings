@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -11,8 +12,8 @@ class CreateChannelMember(ChannelMember):
     pass
 
 
-class ChannelMemberPermissions(BaseModel):
-    permissions: int
+class ChannelMemberRole(BaseModel):
+    permissions: Literal['OWNER', 'ADMIN', 'EDITOR', 'MEMBER', 'BLOCKED']
 
 
 class ReadChannelMember(ChannelMember):

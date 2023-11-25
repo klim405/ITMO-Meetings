@@ -54,7 +54,7 @@ def deactivate_curr_user(
             description='This operation will return User. '
                         'If current user is not target user or has not staff access, '
                         'then request wont contain private information (fields).',
-            response_model=schemas.ReadUser)
+            response_model=schemas.ReadOpenUserInfo)
 def get_user(
         db: DBSessionDep,
         curr_user: Annotated[UserInfo, Depends(get_current_user)],
@@ -63,7 +63,7 @@ def get_user(
     user = get_or_404(User, db, id=user_id)
     if curr_user.is_staff or curr_user.id == user_id:
         return user
-    return user.convert_to(schemas.ReadUser).model_dump(exclude=user.get_names_of_private_fields())
+    return schemas.get_open_user_info(user)
 
 
 @router.put('/{user_id}/',

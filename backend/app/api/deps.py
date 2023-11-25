@@ -16,5 +16,5 @@ def get_current_channel_member(db_session: Session, curr_user: UserInfo, channel
         channel_id=channel_id,
         user=User.get(db_session, id=curr_user.id),
         channel=channel,
-        permissions=Role.MEMBER if channel.is_public else Role.GUEST
+        permissions=Role.GUEST if channel.is_public else Role.ANONYMOUS
     )

@@ -107,7 +107,7 @@ create table meeting (
     description text,
     start_datetime timestamp with time zone not null
         check ( start_datetime > CURRENT_TIMESTAMP ),
-    duration interval,
+    duration_in_minutes int,
     address varchar(512) not null,
     capacity int not null
         check ( capacity > 0 )
@@ -158,7 +158,7 @@ create table feedback (
 
 create index feedback_pk on feedback (user_id, meeting_id);
 
--- Процедура и триггеры для вычисление рейтинга события (meeting) на основе отзывов
+-- Процедура и триггеры для вычисление рейтинга события (meeting.py) на основе отзывов
 create function calc_meeting_rating_trigger_func() returns trigger as $$
     begin
         if (TG_OP = 'DELETE') then
@@ -200,7 +200,7 @@ create trigger meeting_insert after insert or update or delete on meeting
 
 create table category (
     category_id serial primary key,
-    title varchar(20) not null
+    name varchar(20) not null
 --  todo: icon
 );
 
@@ -319,7 +319,7 @@ create function insert_person_trigger_func() returns trigger as $$
     begin
         last_id = create_personal_channel(trim(to_char(new.user_id, '9999999999')));
         insert into channel_member (channel_id, user_id, permissions, is_owner) values
-            (last_id, new.user_id, 125, true);
+            (last_id, new.user_id, 32767, true);
         return null;
     end;
     $$ language plpgsql;

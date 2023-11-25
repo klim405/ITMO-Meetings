@@ -12,7 +12,7 @@ class Meeting(Base):
     title = mapped_column(String(256), nullable=False)
     description = mapped_column(Text)
     start_datetime = mapped_column(DateTime(timezone=True), nullable=False)
-    duration = mapped_column(Interval)
+    duration_in_minutes = mapped_column(Integer, default=None)
     address = mapped_column(String(512), nullable=False)
     capacity = mapped_column(Integer, CheckConstraint('capacity > 0'), default=4)
     price = mapped_column(Integer, CheckConstraint('price >= 0'), default=0)

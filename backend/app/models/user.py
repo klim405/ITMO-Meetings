@@ -1,4 +1,5 @@
 import enum
+from functools import cache
 from typing import Optional, Set
 
 from sqlalchemy import Integer, ForeignKey, String, Enum as SQLEnum, Boolean, Date
@@ -27,8 +28,7 @@ class Confidentiality:
 
 
 ALL_CONFIDENTIALITY = 0b111111111
-DEFAULT_CONFIDENTIALITY = Confidentiality.HIDE_AVATAR | Confidentiality.HIDE_USERNAME | \
-                          Confidentiality.HIDE_SURNAME | Confidentiality.HIDE_CHANNELS
+DEFAULT_CONFIDENTIALITY = Confidentiality.HIDE_PATRONYMIC | Confidentiality.HIDE_TELEPHONE | Confidentiality.HIDE_EMAIL
 
 
 class User(Base):
@@ -72,27 +72,32 @@ class User(Base):
     def verify_password(self, plain_password):
         return check_password_hash(self.password_hash, plain_password)
 
-    def get_names_of_private_fields(self) -> Set[str]:
+    @staticmethod
+    @cache
+    def _get_private_field_names(confidentiality: int) -> set:
         private_fields = set()
-        # if self.confidentiality & Confidentiality.HIDE_AVATAR:
+        # if confidentiality & Confidentiality.HIDE_AVATAR:
         #     private_fields.append('avatar')
-        if self.confidentiality & Confidentiality.HIDE_USERNAME:
+        if confidentiality & Confidentiality.HIDE_USERNAME:
             private_fields.add('username')
-        if self.confidentiality & Confidentiality.HIDE_PATRONYMIC:
+        if confidentiality & Confidentiality.HIDE_PATRONYMIC:
             private_fields.add('patronymic')
-        if self.confidentiality & Confidentiality.HIDE_SURNAME:
+        if confidentiality & Confidentiality.HIDE_SURNAME:
             private_fields.add('surname')
-        if self.confidentiality & Confidentiality.HIDE_BIRTHDATE:
+        if confidentiality & Confidentiality.HIDE_BIRTHDATE:
             private_fields.add('date_of_birth')
-        if self.confidentiality & Confidentiality.HIDE_TELEPHONE:
+        if confidentiality & Confidentiality.HIDE_TELEPHONE:
             private_fields.add('telephone')
-        if self.confidentiality & Confidentiality.HIDE_EMAIL:
+        if confidentiality & Confidentiality.HIDE_EMAIL:
             private_fields.add('email')
-        if self.confidentiality & Confidentiality.HIDE_CHANNELS:
+        if confidentiality & Confidentiality.HIDE_CHANNELS:
             private_fields.add('channels')
-        if self.confidentiality & Confidentiality.HIDE_CATEGORIES:
+        if confidentiality & Confidentiality.HIDE_CATEGORIES:
             private_fields.add('favorites_categories')
         return private_fields
+
+    def get_private_field_names(self) -> Set[str]:
+        return self._get_private_field_names(self.confidentiality)
 
     @classmethod
     def get_by_login(cls, db_session: Session, login: str) -> Optional['User']:

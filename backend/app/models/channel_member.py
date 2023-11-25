@@ -8,27 +8,51 @@ from app.utils.time import datetime_now
 
 class Permission:
     """ Права ChannelMember на внесение изменений в канале """
-    DELETE_CHANNEL = 0b01000000
-    UPDATE_CHANNEL = 0b00100000
-    GIVE_ACCESS = 0b00010000
-    UPDATE_MEETING = 0b00001000
-    SEE_MEMBERS = 0b00000100
-    RESERVED = 0b00000010
-    JOIN_TO_MEETING = 0b00000001
-    NONE = 0b00000000
+    # Channel
+    DELETE_CHANNEL = 0b1000000000000000
+    UPDATE_CHANNEL = 0b0100000000000000
+    # RESERVED     = 0b0010000000000000
+    # RESERVED     = 0b0001000000000000
+
+    # Management
+    GIVE_ACCESS   = 0b0000100000000000
+    # RESERVED    = 0b0000010000000000
+    # RESERVED    = 0b0000001000000000
+    SEE_USER_INFO = 0b0000000100000000
+
+    # Meeting CRUD
+    CREATE_MEETING = 0b0000000010000000
+    UPDATE_MEETING = 0b0000000001000000
+    DELETE_MEETING = 0b0000000000100000
+    SEE_MEETINGS   = 0b0000000000010000
+
+    # General
+    SEE_SUBSCRIBERS      = 0b0000000000001000
+    # RESERVED           = 0b0000000000000100
+    SEE_MEETINGS_MEMBERS = 0b0000000000000010
+    JOIN_TO_MEETING      = 0b0000000000000001
+
+    NONE = 0
 
 
 class Role:
     """ Роли подписчиков канала """
-    OWNER = (Permission.UPDATE_CHANNEL | Permission.DELETE_CHANNEL | Permission.GIVE_ACCESS
-             | Permission.UPDATE_MEETING | Permission.SEE_MEMBERS | Permission.JOIN_TO_MEETING)
-    ADMIN = (Permission.UPDATE_CHANNEL | Permission.GIVE_ACCESS | Permission.UPDATE_MEETING
-             | Permission.SEE_MEMBERS | Permission.JOIN_TO_MEETING)
-    EDITOR = Permission.UPDATE_MEETING | Permission.SEE_MEMBERS | Permission.JOIN_TO_MEETING
-    MEMBER = Permission.SEE_MEMBERS | Permission.JOIN_TO_MEETING
-    SUBSCRIBER = Permission.NONE
-    GUEST = Permission.NONE
-    BLOCKED = Permission.SEE_MEMBERS
+    OWNER = (Permission.DELETE_CHANNEL | Permission.UPDATE_CHANNEL | Permission.GIVE_ACCESS
+             | Permission.SEE_USER_INFO | Permission.CREATE_MEETING | Permission.UPDATE_MEETING
+             | Permission.UPDATE_MEETING | Permission.SEE_MEETINGS | Permission.SEE_SUBSCRIBERS
+             | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
+    ADMIN = (Permission.UPDATE_CHANNEL | Permission.GIVE_ACCESS | Permission.SEE_USER_INFO | Permission.CREATE_MEETING
+             | Permission.UPDATE_MEETING | Permission.UPDATE_MEETING | Permission.SEE_MEETINGS
+             | Permission.SEE_SUBSCRIBERS | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
+    EDITOR = (Permission.SEE_USER_INFO | Permission.CREATE_MEETING | Permission.UPDATE_MEETING
+              | Permission.UPDATE_MEETING | Permission.SEE_MEETINGS | Permission.SEE_SUBSCRIBERS
+              | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
+    MEMBER = (Permission.SEE_MEETINGS | Permission.SEE_SUBSCRIBERS
+              | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
+    GUEST = (Permission.SEE_MEETINGS | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
+    ANONYMOUS = Permission.NONE
+    CONFIRM_WAITER = Permission.NONE
+    BLOCKED = Permission.SEE_SUBSCRIBERS | Permission.SEE_MEETINGS
 
 
 class ChannelMember(Base):
