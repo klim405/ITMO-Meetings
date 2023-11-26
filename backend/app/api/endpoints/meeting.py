@@ -6,10 +6,13 @@ from app.api.deps import get_current_channel_member
 from app.auth.deps import CurrentUserDep
 from app.database.deps import DBSessionDep
 from app.database.utils import get_or_404
-from app.models import Meeting, User
+from app.models import Meeting, User, Feedback
 from app.models.channel_member import Permission
+from app.models.meeting_memeber import MeetingMember
+from app.schemas.feedback import ReadFeedback, FeedbackBase
 from app.schemas.meeting import ReadMeeting, CreateMeeting, UpdateMeeting
 from app.schemas.user import ReadOpenUserInfo, get_open_user_info
+from app.utils.time import datetime_now
 
 router = APIRouter()
 
@@ -125,3 +128,62 @@ def get_member_list(
     curr_member = get_current_channel_member(db, curr_user_info, meeting.channel_id)
     curr_member.has_permission_or_403(Permission.SEE_MEETINGS_MEMBERS)
     return map(get_open_user_info, meeting.members)
+
+
+@router.get('/{meeting_id}/feedback/', tags=['meeting feedback'], response_model=ReadFeedback)
+def get_feedback(
+        db: DBSessionDep,
+        curr_user_info: CurrentUserDep,
+        meeting_id: Annotated[int, Path(ge=1)]
+):
+    return get_or_404(Feedback, db, meeting_id=meeting_id, user_id=curr_user_info.id)
+
+
+@router.post(
+    '/{meeting_id}/feedback/',
+    tags=['meeting feedback'],
+    description="Add feedback to target meeting. "
+                "If current time is less than meeting start time, then server will return HTTP 409.",
+    response_model=ReadFeedback
+)
+def create_feedback(
+        db: DBSessionDep,
+        curr_user_info: CurrentUserDep,
+        meeting_id: Annotated[int, Path(ge=1)],
+        creating_data: FeedbackBase
+):
+    meeting_member = get_or_404(MeetingMember, db, user_id=curr_user_info.id, meeting_id=meeting_id)
+    if meeting_member.meeting.start_time > datetime_now():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail='The meeting has not passed yet.'
+        )
+    feedback = Feedback(
+        user_id=curr_user_info.id,
+        meeting_id=meeting_id,
+        rate=creating_data.rate
+    )
+    feedback.save(db)
+    return feedback
+
+
+@router.put('/{meeting_id}/feedback/', tags=['meeting feedback'], response_model=ReadFeedback)
+def update_feedback(
+        db: DBSessionDep,
+        curr_user_info: CurrentUserDep,
+        meeting_id: Annotated[int, Path(ge=1)],
+        updating_data: FeedbackBase
+):
+    feedback = get_or_404(Feedback, db, meeting_id=meeting_id, user_id=curr_user_info.id)
+    feedback.update(db, updating_data)
+    return feedback
+
+
+@router.delete('/{meeting_id}/feedback/', tags=['meeting feedback'])
+def delete_feedback(
+        db: DBSessionDep,
+        curr_user_info: CurrentUserDep,
+        meeting_id: Annotated[int, Path(ge=1)]
+):
+    feedback = get_or_404(Feedback, db, meeting_id=meeting_id, user_id=curr_user_info.id)
+    feedback.delete(db)

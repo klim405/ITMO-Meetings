@@ -20,7 +20,7 @@ def datetime_more_then_now(
     def validator(v: datetime):
         delta = timedelta(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
         if v < datetime_now() + delta:
-            raise ValueError('Datetime is less then now')
+            raise ValueError('Datetime is less than now')
         return v
     return validator
 
@@ -38,7 +38,7 @@ def datetime_less_then_now(
     def validator(v: datetime):
         delta = timedelta(days, seconds, microseconds, milliseconds, minutes, hours, weeks)
         if v > datetime_now() - delta:
-            raise ValueError('Datetime is more then now')
+            raise ValueError('Datetime is more than now')
         return v
     return validator
 
