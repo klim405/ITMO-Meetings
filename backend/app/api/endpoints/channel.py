@@ -15,7 +15,7 @@ from app.schemas.channel_member import ReadChannelMember, CreateChannelMember, C
 router = APIRouter()
 
 
-@router.get('/list/', dependencies=[login_required], response_model=List[ReadChannelMember])
+@router.get('/list/', dependencies=[login_required], response_model=List[ReadChannel])
 def get_channel_list(db: DBSessionDep):
     return Channel.get_all(db)
 
