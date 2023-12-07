@@ -1,6 +1,6 @@
 from typing import Annotated, List
 
-from fastapi import APIRouter, Path, HTTPException, status
+from fastapi import APIRouter, Path, HTTPException, status, Query
 
 from app.api.deps import get_current_channel_member
 from app.auth.deps import CurrentUserDep
@@ -15,6 +15,22 @@ from app.schemas.user import ReadOpenUserInfo, get_open_user_info
 from app.utils.time import datetime_now
 
 router = APIRouter()
+
+
+@router.get('/list/', response_model=List[ReadMeeting])
+def get_meeting(
+        db: DBSessionDep,
+        curr_user_info: CurrentUserDep,
+        completed: Annotated[bool, Query(description='Include completed meetings at the current time.')] = False,
+        channel: Annotated[int | None, Query(description='Filter by channel')] = None,
+):
+    criteria = []
+    if not completed:
+        criteria.append(Meeting.start_datetime > datetime_now())
+    if channel is not None:
+        criteria.append(Meeting.channel_id == channel)
+    meeting_list = Meeting.filter(db, *criteria)
+    return meeting_list
 
 
 @router.get('/{meeting_id}/', response_model=ReadMeeting)

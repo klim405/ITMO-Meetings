@@ -3,7 +3,7 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, Path, HTTPException, status, Query
 
 from app.api.deps import get_current_channel_member
-from app.auth.deps import get_current_user, CurrentUserDep
+from app.auth.deps import get_current_user, CurrentUserDep, login_required
 from app.database.deps import DBSessionDep
 from app.database.utils import get_or_404
 from app.models import Channel, ChannelMember
@@ -13,6 +13,11 @@ from app.schemas.channel import ReadChannel, CreateChannel, UpdateChannel, Recov
 from app.schemas.channel_member import ReadChannelMember, CreateChannelMember, ChannelMemberRole
 
 router = APIRouter()
+
+
+@router.get('/list/', dependencies=[login_required], response_model=List[ReadChannelMember])
+def get_channel_list(db: DBSessionDep):
+    return Channel.get_all(db)
 
 
 @router.get('/{channel_id}/', response_model=ReadChannel,
@@ -139,7 +144,7 @@ def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
         channel_id: Annotated[int, Path(ge=1)],
-        member_id: Annotated[int, Path(ge=1)]
+        member_id: Annotated[int, Path(description='This is target user id', ge=1)]
 ):
     curr_member = get_current_channel_member(db, curr_user_info, channel_id)
     curr_member.has_permission_or_403(Permission.GIVE_ACCESS)
@@ -157,7 +162,7 @@ def edit_channel_member(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
         channel_id: Annotated[int, Path(ge=1)],
-        member_id: Annotated[int, Path(ge=1)],
+        member_id: Annotated[int, Path(description='This is target user id', ge=1)],
         data: ChannelMemberRole
 ):
     curr_member = get_current_channel_member(db, curr_user_info, channel_id)
@@ -186,7 +191,7 @@ def edit_channel_member(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
         channel_id: Annotated[int, Path(ge=1)],
-        member_id: Annotated[int, Path(ge=1)]
+        member_id: Annotated[int, Path(description='This is target user id', ge=1)]
 ):
     curr_member = get_current_channel_member(db, curr_user_info, channel_id)
     target_member = get_or_404(ChannelMember, db,

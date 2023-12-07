@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, List
 
 from fastapi import APIRouter, Path, Depends, HTTPException, status
 
@@ -6,7 +6,8 @@ import app.schemas.user as schemas
 from app.auth.deps import get_current_user, UserInfo
 from app.database.deps import DBSessionDep
 from app.database.utils import get_or_404
-from app.models import User, utils
+from app.models import User, utils, ChannelMember
+from app.schemas.complex_schemas import ChannelMemberWithChannel
 
 router = APIRouter()
 
@@ -48,6 +49,27 @@ def deactivate_curr_user(
 ):
     user = user_info.get_model(db)
     utils.deactivate_user(db, user)
+
+
+@router.get('/me/channels/',
+            description="Returned channels to which current user is subscribed.",
+            response_model=List[ChannelMemberWithChannel])
+def get_my_channels(
+        db: DBSessionDep,
+        user_info: Annotated[UserInfo, Depends(get_current_user)]
+):
+    return ChannelMember.filter(db, ChannelMember.user_id == user_info.id)
+
+
+@router.get('/list/', response_model=List[schemas.ReadOpenUserInfo])
+def get_user_list(
+        db: DBSessionDep,
+        curr_user: Annotated[UserInfo, Depends(get_current_user)]
+):
+    user_list = User.get_all(db)
+    if curr_user.is_staff:
+        return user_list
+    return map(schemas.get_open_user_info, user_list)
 
 
 @router.get('/{user_id}/',

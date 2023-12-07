@@ -54,7 +54,7 @@ class User(Base):
     # security
     confidentiality = mapped_column(Integer, nullable=False, default=DEFAULT_CONFIDENTIALITY)
     is_staff = mapped_column(Boolean, nullable=False, default=False)
-    is_active = mapped_column(Boolean, nullable=False, default=False)
+    is_active = mapped_column(Boolean, nullable=False, default=True)
 
     favorites_categories = relationship('Category', secondary=favorite_category)
     channel_members = relationship('ChannelMember', back_populates='user')

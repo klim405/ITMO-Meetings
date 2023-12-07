@@ -45,5 +45,5 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         return UserInfo(user)
 
 
-login_required = get_current_user
+login_required = Depends(get_current_user)
 CurrentUserDep = Annotated[UserInfo, Depends(get_current_user)]
