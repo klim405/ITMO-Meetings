@@ -12,7 +12,12 @@ from app.schemas.complex_schemas import ChannelMemberWithChannel
 router = APIRouter()
 
 
-@router.post('/', response_model=schemas.ReadUser)
+@router.post(
+    '/',
+    name='Зарегистрировать пользователя',
+    description='Регистрирует пользователя. Если возникает валидационная ошибка, '
+                'либо какое-то уникальное поле не уникально, то возвращается HTTP 422 (Не обрабатываемая сущность)',
+    response_model=schemas.ReadUser)
 def create_user(
         db: DBSessionDep,
         creating_data: schemas.CreateUser
@@ -21,8 +26,11 @@ def create_user(
     return new_user
 
 
-@router.get('/me/', name='Get current User',
-            response_model=schemas.ReadUser)
+@router.get(
+    '/me/',
+    name='Получить текущего пользователя',
+    description='Возвращает текущего (авторизованного) пользователя.',
+    response_model=schemas.ReadUser)
 def get_curr_user(
         db: DBSessionDep,
         user: Annotated[UserInfo, Depends(get_current_user)]
@@ -30,8 +38,11 @@ def get_curr_user(
     return user.get_model(db)
 
 
-@router.patch('/me/password/',
-              response_model=schemas.ReadUser)
+@router.patch(
+    '/me/password/',
+    name='Сменить пароль текущему пользователю',
+    description='Устанавливает новый пароль текущему пользователю.',
+    response_model=schemas.ReadUser)
 def change_user_password(
         db: DBSessionDep,
         curr_user_info: Annotated[UserInfo, Depends(get_current_user)],
@@ -42,7 +53,17 @@ def change_user_password(
     return curr_user
 
 
-@router.delete('/me/', name='Deactivate current User')
+@router.delete(
+    '/me/',
+    name='Деактивирует текущего пользователя',
+    description='Выполняет процесс деактивации пользователя, '
+                'после данного действия пользователь не сможет авторизоваться в системе, '
+                'также пользователь исключается из всех сообществ где он является участником. '
+                'Если пользователь владеет сообществом, то его права владельца передаются другому участнику сообщества'
+                ' с наиболее высоким уровнем доступа. '
+                'Если пользователь владелец и является единственным участником сообщества, '
+                'то сообщество деактивируется, в дальнейшем владелец может его восстановить. '
+                'Личное сообщество (канал) деактивируется.')
 def deactivate_curr_user(
         db: DBSessionDep,
         user_info: Annotated[UserInfo, Depends(get_current_user)]
@@ -51,9 +72,12 @@ def deactivate_curr_user(
     utils.deactivate_user(db, user)
 
 
-@router.get('/me/channels/',
-            description="Returned channels to which current user is subscribed.",
-            response_model=List[ChannelMemberWithChannel])
+@router.get(
+    '/me/channels/',
+    name='Получить мои каналы',
+    description='Возвращает все экземпляры сущности участник канала с вложенным в нее сообществом (каналом). '
+                'В выборку попадают все сообщества (каналы) где текущий пользователь участник или подписчик.',
+    response_model=List[ChannelMemberWithChannel])
 def get_my_channels(
         db: DBSessionDep,
         user_info: Annotated[UserInfo, Depends(get_current_user)]
@@ -61,7 +85,12 @@ def get_my_channels(
     return ChannelMember.filter(db, ChannelMember.user_id == user_info.id)
 
 
-@router.get('/list/', response_model=List[schemas.ReadOpenUserInfo])
+@router.get(
+    '/list/',
+    name='Получить список пользователей',
+    description='Возвращает список пользователей. Если текущий пользователь администратор, '
+                'то все конфиденциальные поля НЕ скрыты, иначе значение этих полей установлены в null.',
+    response_model=List[schemas.ReadOpenUserInfo])
 def get_user_list(
         db: DBSessionDep,
         curr_user: Annotated[UserInfo, Depends(get_current_user)]
@@ -72,11 +101,13 @@ def get_user_list(
     return map(schemas.get_open_user_info, user_list)
 
 
-@router.get('/{user_id}/',
-            description='This operation will return User. '
-                        'If current user is not target user or has not staff access, '
-                        'then request wont contain private information (fields).',
-            response_model=schemas.ReadOpenUserInfo)
+@router.get(
+    '/{user_id}/',
+    name='Получить пользователя.',
+    description='Возвращает сущность пользователя. '
+                'Если текущий пользователь НЕ является администратором, '
+                'то конфиденциальные поля установлены в null.',
+    response_model=schemas.ReadOpenUserInfo)
 def get_user(
         db: DBSessionDep,
         curr_user: Annotated[UserInfo, Depends(get_current_user)],
@@ -88,9 +119,11 @@ def get_user(
     return schemas.get_open_user_info(user)
 
 
-@router.put('/{user_id}/',
-            description='This operation will update all required fields.',
-            response_model=schemas.ReadUser)
+@router.put(
+    '/{user_id}/',
+    name='Изменить пользователя',
+    description='Обновляет все обязательные поля.',
+    response_model=schemas.ReadUser)
 def update_user(
         db: DBSessionDep,
         curr_user: Annotated[User, Depends(get_current_user)],
@@ -104,8 +137,17 @@ def update_user(
     return user
 
 
-@router.delete('/{user_id}/',
-               description='This operation will update all required fields.')
+@router.delete(
+    '/{user_id}/',
+    name='Удалить пользователя',
+    description='Данная операция доступна только администратору. Выполняет процесс деактивации пользователя, '
+                'после данного действия пользователь не сможет авторизоваться в системе, '
+                'также пользователь исключается из всех сообществ где он является участником. '
+                'Если пользователь владеет сообществом, то его права владельца передаются другому участнику сообщества'
+                ' с наиболее высоким уровнем доступа. '
+                'Если пользователь владелец и является единственным участником сообщества, '
+                'то сообщество деактивируется, в дальнейшем владелец может его восстановить. '
+                'Личное сообщество (канал) деактивируется.')
 def deactivate_user(
         db: DBSessionDep,
         curr_user: Annotated[User, Depends(get_current_user)],

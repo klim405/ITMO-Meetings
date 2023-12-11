@@ -15,18 +15,56 @@ from app.schemas.channel_member import ReadChannelMember, CreateChannelMember, C
 router = APIRouter()
 
 
-@router.get('/list/', dependencies=[login_required], response_model=List[ReadChannel])
+@router.get(
+    '/list/',
+    name='Получить список каналов.',
+    description='Возвращает все каналы, которые не удалены (активны).',
+    dependencies=[login_required],
+    response_model=List[ReadChannel])
 def get_channel_list(db: DBSessionDep):
-    return Channel.get_all(db)
+    return Channel.filter(db, Channel.is_active == True)
 
 
-@router.get('/{channel_id}/', response_model=ReadChannel,
-            dependencies=[Depends(get_current_user)])
+@router.get(
+    '/my-personal-channel/',
+    name='Вернуть мой канал',
+    description='Возвращает канал текущего пользователя.',
+    response_model=ReadChannel)
+def update_channel(
+        db: DBSessionDep,
+        curr_user_info: CurrentUserDep
+):
+    curr_channel_member = ChannelMember.get_first_by_filter(
+        db,
+        ChannelMember.user_id == curr_user_info.id,
+        ChannelMember.is_owner == True,
+        ChannelMember.channel.has(is_personal=True)
+    )
+
+    if curr_channel_member is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='User has not personal channel.'
+    )
+
+    return curr_channel_member.channel
+
+
+@router.get(
+    '/{channel_id}/',
+    name='Получить сообщество (канал)',
+    response_model=ReadChannel,
+    dependencies=[Depends(get_current_user)])
 def get_channel(db: DBSessionDep, channel_id: Annotated[int, Path(ge=1)]):
     return get_or_404(Channel, db, id=channel_id)
 
 
-@router.post('/', response_model=ReadChannel)
+@router.post(
+    '/',
+    name='Создать сообщество (канал)',
+    description='Создаёт канал для текущего пользователя. '
+                'Текущий пользователь автоматически становится владельцем и участником канала.',
+    response_model=ReadChannel)
 def create_channel(
         db: DBSessionDep,
         user: CurrentUserDep,
@@ -42,7 +80,13 @@ def create_channel(
     return channel_member.channel
 
 
-@router.put('/{channel_id}/', response_model=ReadChannel)
+@router.put(
+    '/{channel_id}/',
+    name='Изменить сообщество (канал)',
+    description='Изменяет канал. Если у пользователя нет прав на изменение канала, '
+                'то возвращается HTTP 403 (Отказано в доступе).'
+                'Если канала не существует, то возвращается HTTP 404 (Объект не найден).',
+    response_model=ReadChannel)
 def update_channel(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -56,7 +100,11 @@ def update_channel(
     return channel
 
 
-@router.delete('/{channel_id}/')
+@router.delete(
+    '/{channel_id}/',
+    name='Удалить сообщество (канал)',
+    description='Удаляет (деактивирует) сообщество.'
+)
 def deactivate_channel(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -70,9 +118,11 @@ def deactivate_channel(
     return channel
 
 
-@router.patch('/{channel_id}/recovery/',
-              description='Reactivate channel, this operation is available only for owner or staff user.',
-              response_model=ReadChannel)
+@router.patch(
+    '/{channel_id}/recovery/',
+    name='Восстановить сообщество (канал)',
+    description='Восстановление канала доступно только владельцу канала, либо администратору сайта.',
+    response_model=ReadChannel)
 def recovery_channel(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -90,9 +140,12 @@ def recovery_channel(
     )
 
 
-@router.post('/{channel_id}/subscribe/',
-             tags=['channel members'],
-             response_model=ReadChannelMember)
+@router.post(
+    '/{channel_id}/subscribe/',
+    name='Вступить в сообщество (канал)',
+    description='Если сообщество публичное, то участник получает права MEMBER, иначе SUBSCRIBER.',
+    tags=['Участники сообщества (channel members)'],
+    response_model=ReadChannelMember)
 def subscribe(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -115,9 +168,13 @@ def subscribe(
     )
 
 
-@router.get('/{channel_id}/member/list/',
-            tags=['channel members'],
-            response_model=List[ReadChannelMember])
+@router.get(
+    '/{channel_id}/member/list/',
+    name='Получить список участников сообщества (канала)',
+    description='Возвращает список участников канала. Если у текущего пользователя нет права на просмотр участников, '
+                'возвращает HTTP 403 (Отказано в доступе).',
+    tags=['Участники сообщества (channel members)'],
+    response_model=List[ReadChannelMember])
 def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -137,9 +194,12 @@ def members(
                              ChannelMember.permissions != 0)
 
 
-@router.patch('/{channel_id}/member/{member_id}/confirm/',
-              tags=['channel members'],
-              response_model=ReadChannelMember)
+@router.patch(
+    '/{channel_id}/member/{member_id}/confirm/',
+    name='Подтвердить участника сообщества (канала)',
+    description='Дает права MEMBER подписчику канала.',
+    tags=['Участники сообщества (channel members)'],
+    response_model=ReadChannelMember)
 def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -155,9 +215,12 @@ def members(
     return target_member
 
 
-@router.patch('/{channel_id}/member/{member_id}/role/',
-              tags=['channel members'],
-              response_model=ReadChannelMember)
+@router.patch(
+    '/{channel_id}/member/{member_id}/role/',
+    name='Изменить роль участника сообщества (канала)',
+    description='Изменяет роль и соответственно права участника сообщества.',
+    tags=['Участники сообщества (channel members)'],
+    response_model=ReadChannelMember)
 def edit_channel_member(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
@@ -184,10 +247,14 @@ def edit_channel_member(
     return target_member
 
 
-@router.patch('/{channel_id}/member/{member_id}/make-owner/',
-              tags=['channel members'],
-              response_model=ReadChannelMember)
-def edit_channel_member(
+@router.patch(
+    '/{channel_id}/member/{member_id}/make-owner/',
+    name='Передать права владельца сообщества (канала)',
+    description='Доступно только для в владельца. Передает права владельца другому участнику. '
+                'Для личного сообщества (канала) передача прав невозможна.',
+    tags=['Участники сообщества (channel members)'],
+    response_model=ReadChannelMember)
+def give_owner_role(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
         channel_id: Annotated[int, Path(ge=1)],
@@ -200,6 +267,9 @@ def edit_channel_member(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='You can not edit self.')
     if not curr_member.is_owner:
         raise HTTPException(status_code=status.HTTP_403_BAD_REQUEST, detail='You are not owner.')
+    if curr_member.channel.is_personal:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail='You cant give owner role to other member, because it\'s personal channel')
     target_member.is_owner = True
     target_member.permissions = Role.OWNER
     curr_member.is_owner = False
@@ -211,7 +281,13 @@ def edit_channel_member(
     return target_member
 
 
-@router.delete('/{channel_id}/subscribe/', tags=['channel members'],)
+@router.delete(
+    '/{channel_id}/subscribe/',
+    name='Отписаться от сообщества (канала)',
+    description='Если участник владелец права владельца передаются другому, '
+                'если владелец единственный участник сообщества (канала) удаляется (деактивируется).'
+                'Для владельцев личного сообщества (канала) операция не невозможна.',
+    tags=['Участники сообщества (channel members)'])
 def unsubscribe(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
