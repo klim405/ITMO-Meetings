@@ -162,7 +162,7 @@ def deactivate_user(
 
 
 @router.get(
-    '/me/meetings',
+    '/me/meetings/',
     name='Получит связанные со мной мероприятия',
     description='Возвращает все мероприятия в которых текущий пользователь является участником.',
     response_model=List[ReadMeeting]
