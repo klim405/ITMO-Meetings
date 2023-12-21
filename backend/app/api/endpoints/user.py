@@ -8,6 +8,7 @@ from app.database.deps import DBSessionDep
 from app.database.utils import get_or_404
 from app.models import User, utils, ChannelMember
 from app.schemas.complex_schemas import ChannelMemberWithChannel
+from app.schemas.meeting import ReadMeeting
 
 router = APIRouter()
 
@@ -158,3 +159,17 @@ def deactivate_user(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You do not have access to deactivate user.')
     utils.deactivate_user(db, user)
     user.save(db)
+
+
+@router.get(
+    '/me/meetings',
+    name='Получит связанные со мной мероприятия',
+    description='Возвращает все мероприятия в которых текущий пользователь является участником.',
+    response_model=List[ReadMeeting]
+)
+def get_my_meeting(
+        db: DBSessionDep,
+        user_info: Annotated[UserInfo, Depends(get_current_user)]
+):
+    curr_user = get_curr_user(User, user_info.id)
+    return curr_user.meetings
