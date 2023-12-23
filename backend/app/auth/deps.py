@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.schemas import TokenData
 from app.database.core import SessionLocal
+from app.database.utils import get_or_404
 from app.models import User
 from app.settings import settings
 
@@ -19,7 +20,7 @@ class UserInfo:
         self.is_staff = user.is_staff
 
     def get_model(self, db_session: Session) -> User:
-        return User.get(db_session, id=self.id)
+        return get_or_404(User, db_session, id=self.id)
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
