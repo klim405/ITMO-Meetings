@@ -171,5 +171,5 @@ def get_my_meeting(
         db: DBSessionDep,
         user_info: Annotated[UserInfo, Depends(get_current_user)]
 ):
-    curr_user = get_curr_user(User, user_info.id)
+    curr_user = get_or_404(User, user_info.id)
     return curr_user.meetings
