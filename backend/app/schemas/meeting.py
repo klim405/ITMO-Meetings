@@ -35,4 +35,5 @@ class UpdateMeeting(MeetingBase):
 class ReadMeeting(MeetingBase):
     id: int
     channel_id: int
+    start_datetime: datetime
     rating: float | None = None
