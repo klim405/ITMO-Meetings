@@ -187,11 +187,11 @@ def members(
     if role_codes:
         return ChannelMember.filter(db, ChannelMember.channel_id == channel_id,
                                     ChannelMember.permissions.in_(role_codes),
-                                    ChannelMember.date_of_join != None)
+                                    ChannelMember.date_of_join.isnot(None))
     else:
         ChannelMember.filter(db, ChannelMember.channel_id == channel_id,
                              ChannelMember.permissions.in_(role_codes),
-                             ChannelMember.date_of_join != None)
+                             ChannelMember.date_of_join.isnot(None))
 
 
 @router.patch(
