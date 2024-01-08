@@ -3,3 +3,4 @@ venv
 .run
 docs/backend
 backend/README.md
+backend/build

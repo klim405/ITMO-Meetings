@@ -1,4 +1,4 @@
-from typing import Annotated, List
+from typing import Annotated, List, Literal, Set
 
 from fastapi import APIRouter, Depends, Path, HTTPException, status, Query
 
@@ -179,19 +179,19 @@ def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
         channel_id: Annotated[int, Path(ge=1)],
-        wait_confirmation: bool | None = Query(
-            default=None, description='Returns channel members, who is waiting for confirmation to join')
+        roles: Annotated[Set[Literal['OWNER', 'ADMIN', 'EDITOR', 'MEMBER', 'BLOCKED']], Query()]
 ):
     curr_member = get_current_channel_member(db, curr_user_info, channel_id)
     curr_member.has_permission_or_403(Permission.SEE_SUBSCRIBERS)
-    if wait_confirmation is None:
-        return curr_member.channel.members
-    if wait_confirmation:
+    role_codes = list(map(lambda r: getattr(Role, r), roles))
+    if role_codes:
         return ChannelMember.filter(db, ChannelMember.channel_id == channel_id,
-                                    ChannelMember.permissions == 0)
+                                    ChannelMember.permissions.in_(role_codes),
+                                    ChannelMember.date_of_join != None)
     else:
         ChannelMember.filter(db, ChannelMember.channel_id == channel_id,
-                             ChannelMember.permissions != 0)
+                             ChannelMember.permissions.in_(role_codes),
+                             ChannelMember.date_of_join != None)
 
 
 @router.patch(
