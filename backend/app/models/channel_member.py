@@ -49,7 +49,8 @@ class Role:
               | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
     MEMBER = (Permission.SEE_MEETINGS | Permission.SEE_SUBSCRIBERS
               | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
-    GUEST = (Permission.SEE_MEETINGS | Permission.SEE_SUBSCRIBERS | Permission.SEE_MEETINGS_MEMBERS | Permission.JOIN_TO_MEETING)
+    GUEST = (Permission.SEE_MEETINGS | Permission.SEE_SUBSCRIBERS | Permission.SEE_MEETINGS_MEMBERS |
+             Permission.JOIN_TO_MEETING)
     ANONYMOUS = Permission.NONE
     CONFIRM_WAITER = Permission.NONE
     BLOCKED = Permission.SEE_SUBSCRIBERS | Permission.SEE_MEETINGS

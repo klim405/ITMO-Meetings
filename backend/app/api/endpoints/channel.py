@@ -179,7 +179,7 @@ def members(
         db: DBSessionDep,
         curr_user_info: CurrentUserDep,
         channel_id: Annotated[int, Path(ge=1)],
-        roles: Annotated[Set[Literal['OWNER', 'ADMIN', 'EDITOR', 'MEMBER', 'BLOCKED']], Query()]
+        roles: Annotated[Set[Literal['OWNER', 'ADMIN', 'EDITOR', 'MEMBER', 'BLOCKED']], Query()] = ('OWNER', 'ADMIN', 'EDITOR', 'MEMBER', 'BLOCKED')
 ):
     curr_member = get_current_channel_member(db, curr_user_info, channel_id)
     curr_member.has_permission_or_403(Permission.SEE_SUBSCRIBERS)
