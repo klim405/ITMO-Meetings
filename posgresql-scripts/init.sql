@@ -313,13 +313,13 @@ create or replace function create_personal_channel(in ch_name varchar(100), out 
 $$ language sql;
 
 
-create function insert_person_trigger_func() returns trigger as $$
+create or replace function insert_person_trigger_func() returns trigger as $$
     declare
         last_id integer;
     begin
         last_id = create_personal_channel(trim(to_char(new.user_id, '9999999999')));
         insert into channel_member (channel_id, user_id, permissions, is_owner) values
-            (last_id, new.user_id, 32767, true);
+            (last_id, new.user_id, 51675, true);
         return null;
     end;
     $$ language plpgsql;
