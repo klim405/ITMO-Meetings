@@ -13,7 +13,7 @@ class CreateChannelMember(ChannelMember):
 
 
 class ChannelMemberRole(BaseModel):
-    permissions: Literal['OWNER', 'ADMIN', 'EDITOR', 'MEMBER', 'BLOCKED']
+    permissions: Literal["OWNER", "ADMIN", "EDITOR", "MEMBER", "BLOCKED"]
 
 
 class ReadChannelMember(ChannelMember):

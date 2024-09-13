@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.deps import UserInfo
 from app.database.utils import get_or_404
-from app.models import User, ChannelMember, Channel
+from app.models import Channel, ChannelMember, User
 from app.models.channel_member import Role
 
 
@@ -16,5 +16,5 @@ def get_current_channel_member(db_session: Session, curr_user: UserInfo, channel
         channel_id=channel_id,
         user=User.get(db_session, id=curr_user.id),
         channel=channel,
-        permissions=Role.GUEST if channel.is_public else Role.ANONYMOUS
+        permissions=Role.GUEST if channel.is_public else Role.ANONYMOUS,
     )

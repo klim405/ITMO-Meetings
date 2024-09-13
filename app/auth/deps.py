@@ -42,7 +42,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
         if user is None:
             raise token_exception
         if not user.is_active:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Inactive user')
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
         return UserInfo(user)
 
 

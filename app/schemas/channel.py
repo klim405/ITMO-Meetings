@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class ChannelBase(BaseModel):
-    name: str = Field(max_lenfgth=100, pattern=r'^[\w\s\d]+$', examples=['My super channel name'])
-    description: str | None = Field(default=None, examples=['Here plain text'])
+    name: str = Field(max_lenfgth=100, pattern=r"^[\w\s\d]+$", examples=["My super channel name"])
+    description: str | None = Field(default=None, examples=["Here plain text"])
     is_public: bool = False
 
 

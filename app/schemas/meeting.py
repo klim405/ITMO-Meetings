@@ -1,20 +1,22 @@
 from datetime import datetime
 from typing import Annotated
 
-from pydantic import BaseModel, Field, AfterValidator
+from pydantic import AfterValidator, BaseModel, Field
 
-from app.schemas.validators import datetime_more_then_now, date_time_to_server_tz
+from app.schemas.validators import date_time_to_server_tz, datetime_more_then_now
 
 
 class MeetingBase(BaseModel):
-    title: str = Field(min_length=3, max_length=256, examples=['My super party'])
-    description: str | None = Field(default=None, examples=['If you will come, you will have unreal emotions.'])
+    title: str = Field(min_length=3, max_length=256, examples=["My super party"])
+    description: str | None = Field(
+        default=None, examples=["If you will come, you will have unreal emotions."]
+    )
     start_datetime: Annotated[
         datetime,
         AfterValidator(date_time_to_server_tz),
-        AfterValidator(datetime_more_then_now(hours=1))
+        AfterValidator(datetime_more_then_now(hours=1)),
     ]
-    duration_in_minutes: int | None = Field(ge=15, le=24*60, examples=[15])
+    duration_in_minutes: int | None = Field(ge=15, le=24 * 60, examples=[15])
     address: str = Field(min_length=3, max_length=512)
     capacity: int = Field(ge=4, examples=[4])
     price: int = Field(default=0, ge=0)

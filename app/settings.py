@@ -1,7 +1,7 @@
 import secrets
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
 
-from pydantic.v1 import AnyHttpUrl, PostgresDsn, validator, BaseSettings
+from pydantic.v1 import AnyHttpUrl, BaseSettings, PostgresDsn, validator
 
 
 class Settings(BaseSettings):
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     TOKEN_CIPHER_ALGORITHM: str = "HS256"
     # 8 days * 24 hours * 60 minutes  = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 8 * 24 * 60
-    SERVER_NAME: str = 'ITMOMeetings'
+    SERVER_NAME: str = "ITMOMeetings"
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
             path=f"/{values.get('POSTGRES_DB') or ''}",
         )
 
-    SERVER_TIMEZONE: str = 'UTC'
+    SERVER_TIMEZONE: str = "UTC"
 
     class Config:
         case_sensitive = True

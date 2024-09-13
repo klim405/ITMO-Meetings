@@ -20,6 +20,29 @@ pytz = "^2023.3.post1"
 uvicorn = "^0.24.0.post1"
 
 
+[tool.poetry.group.dev.dependencies]
+flake8 = "^7.1.1"
+flake8-pyproject = "^1.2.3"
+isort = "^5.13.2"
+black = "^24.8.0"
+
+
+[tool.flake8]
+max-line-length = 110
+extend-exclude = "docs, posgresql-scripts, venv"
+extend-ignore = ["E203"]
+
+[tool.isort]
+profile = "black"
+line_length = 110
+extend_skip = ["docs", "posgresql-scripts", "venv"]
+skip_gitignore = true
+
+[tool.black]
+line-length = 110
+extend-exclude = "docs|posgresql-scripts|venv"
+
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

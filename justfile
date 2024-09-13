@@ -5,6 +5,7 @@ DB_URL := "postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@$POSTGRES_SERVER:$POST
 
 # Подготовка проекта
 prepare:
+  poetry install
   poetry self add poetry-plugin-dotenv
   cp .env.template .env
   echo "Пожалуйста установите значения для переменных окружения в файле .env"
@@ -32,4 +33,16 @@ db_reset: db_drop db_init
 run:
   poetry run uvicorn main:app --reload
 
-
+lint mode="fix":
+  #!/bin/bash
+  if [ "{{ mode }}" == "fix" ]; then
+    poetry run isort .
+    poetry run black .
+    poetry run flake8
+  elif [ "{{ mode }}" == "check" ]; then
+    poetry run flake8
+    poetry run black --diff --check .
+    poetry run isort --diff --check .
+  else
+    echo "Invalid argument '{{ mode }}'"
+  fi

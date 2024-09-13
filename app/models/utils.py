@@ -24,8 +24,7 @@ def delete_owner(db_session: Session, old_owner: ChannelMember):
 def deactivate_user(db_session: Session, user: User):
     # Находим информацию о сообществах, где владелец деактивируемый пользователь.
     owner_members = ChannelMember.filter(
-        db_session,
-        (ChannelMember.user_id == user.id) & (ChannelMember.is_owner == True)
+        db_session, (ChannelMember.user_id == user.id) & (ChannelMember.is_owner == True)  # noqa: E712
     )
     for owner_member in owner_members:
         channel = owner_member.channel

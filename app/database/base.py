@@ -1,4 +1,4 @@
-from typing import Any, Optional, List, Self, Type
+from typing import Any, List, Optional, Self, Type
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
@@ -13,16 +13,16 @@ class Base(DeclarativeBase):
         return db_session.query(cls).get(pk)
 
     @classmethod
-    def get_all(cls, db_session: Session, *,
-                offset: int = 0,
-                limit: int | None = None) -> List[Self]:
+    def get_all(cls, db_session: Session, *, offset: int = 0, limit: int | None = None) -> List[Self]:
         query = db_session.query(cls).offset(offset)
         if limit is not None:
             return query.limit(limit).all()
         return query.all()
 
     @classmethod
-    def get_first_by_filter(cls, db_session: Session, *criterion: ColumnExpressionArgument[bool]) -> Optional[Self]:
+    def get_first_by_filter(
+        cls, db_session: Session, *criterion: ColumnExpressionArgument[bool]
+    ) -> Optional[Self]:
         return db_session.query(cls).filter(*criterion).first()
 
     @classmethod
@@ -30,24 +30,42 @@ class Base(DeclarativeBase):
         return db_session.query(cls).filter(*criterion).all()
 
     @classmethod
-    def create(cls, db_session: Session, schema: BaseModel, *,
-               include: dict[str, Any] | None = None,
-               exclude: dict[str, Any] | None = None,
-               exclude_unset: bool = False,
-               exclude_defaults: bool = False) -> Self:
+    def create(
+        cls,
+        db_session: Session,
+        schema: BaseModel,
+        *,
+        include: dict[str, Any] | None = None,
+        exclude: dict[str, Any] | None = None,
+        exclude_unset: bool = False,
+        exclude_defaults: bool = False,
+    ) -> Self:
         creating_data = schema.model_dump(
-            include=include, exclude=exclude, exclude_unset=exclude_unset, exclude_defaults=exclude_defaults)
+            include=include,
+            exclude=exclude,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+        )
         new_obj = cls(**creating_data)
         new_obj.save(db_session)
         return new_obj
 
-    def update(self, db_session: Session, schema: BaseModel, *,
-               include: dict[str, Any] | None = None,
-               exclude: dict[str, Any] | None = None,
-               exclude_unset: bool = True,
-               exclude_defaults: bool = True) -> None:
-        updating_data = schema.model_dump(include=include, exclude=exclude,
-                                          exclude_unset=exclude_unset, exclude_defaults=exclude_defaults)
+    def update(
+        self,
+        db_session: Session,
+        schema: BaseModel,
+        *,
+        include: dict[str, Any] | None = None,
+        exclude: dict[str, Any] | None = None,
+        exclude_unset: bool = True,
+        exclude_defaults: bool = True,
+    ) -> None:
+        updating_data = schema.model_dump(
+            include=include,
+            exclude=exclude,
+            exclude_unset=exclude_unset,
+            exclude_defaults=exclude_defaults,
+        )
         for field, value in updating_data.items():
             setattr(self, field, value)
         self.save(db_session)
@@ -58,7 +76,7 @@ class Base(DeclarativeBase):
             db_session.commit()
             db_session.refresh(self)
         except IntegrityError as e:
-            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f'{e.orig}')
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{e.orig}")
 
     def delete(self, db_session: Session) -> None:
         db_session.delete(self)

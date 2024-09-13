@@ -2,8 +2,10 @@ import enum
 from functools import cache
 from typing import Optional, Set
 
-from sqlalchemy import Integer, ForeignKey, String, Enum as SQLEnum, Boolean, Date
-from sqlalchemy.orm import relationship, mapped_column, Session
+from sqlalchemy import Boolean, Date
+from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import ForeignKey, Integer, String
+from sqlalchemy.orm import Session, mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.database import Base
@@ -11,8 +13,8 @@ from app.models.secondary_tables import favorite_category, meeting_member
 
 
 class Gender(enum.Enum):
-    male = 'male'
-    female = 'female'
+    male = "male"
+    female = "female"
 
 
 class Confidentiality:
@@ -28,14 +30,16 @@ class Confidentiality:
 
 
 ALL_CONFIDENTIALITY = 0b111111111
-DEFAULT_CONFIDENTIALITY = Confidentiality.HIDE_PATRONYMIC | Confidentiality.HIDE_TELEPHONE | Confidentiality.HIDE_EMAIL
+DEFAULT_CONFIDENTIALITY = (
+    Confidentiality.HIDE_PATRONYMIC | Confidentiality.HIDE_TELEPHONE | Confidentiality.HIDE_EMAIL
+)
 
 
 class User(Base):
-    __tablename__ = 'person'
-    id = mapped_column('user_id', Integer, primary_key=True)
-    referrer_id = mapped_column(Integer, ForeignKey('person.user_id'), nullable=True)
-    referer = relationship('User', remote_side=[id])
+    __tablename__ = "person"
+    id = mapped_column("user_id", Integer, primary_key=True)
+    referrer_id = mapped_column(Integer, ForeignKey("person.user_id"), nullable=True)
+    referer = relationship("User", remote_side=[id])
 
     # credentials
     username = mapped_column(String(20), unique=True, nullable=True)
@@ -56,18 +60,18 @@ class User(Base):
     is_staff = mapped_column(Boolean, nullable=False, default=False)
     is_active = mapped_column(Boolean, nullable=False, default=True)
 
-    favorites_categories = relationship('Category', secondary=favorite_category)
-    channel_members = relationship('ChannelMember', back_populates='user')
-    meetings = relationship('Meeting', secondary=meeting_member, back_populates='members')
-    feedbacks = relationship('Feedback', back_populates='user')
+    favorites_categories = relationship("Category", secondary=favorite_category)
+    channel_members = relationship("ChannelMember", back_populates="user")
+    meetings = relationship("Meeting", secondary=meeting_member, back_populates="members")
+    feedbacks = relationship("Feedback", back_populates="user")
 
     @property
     def password(self):
-        raise AttributeError('password is not readable attribute.')
+        raise AttributeError("password is not readable attribute.")
 
     @password.setter
     def password(self, plain_password):
-        self.password_hash = generate_password_hash(plain_password, method='pbkdf2:sha512', salt_length=32)
+        self.password_hash = generate_password_hash(plain_password, method="pbkdf2:sha512", salt_length=32)
 
     def verify_password(self, plain_password):
         return check_password_hash(self.password_hash, plain_password)
@@ -79,29 +83,28 @@ class User(Base):
         # if confidentiality & Confidentiality.HIDE_AVATAR:
         #     private_fields.append('avatar')
         if confidentiality & Confidentiality.HIDE_USERNAME:
-            private_fields.add('username')
+            private_fields.add("username")
         if confidentiality & Confidentiality.HIDE_PATRONYMIC:
-            private_fields.add('patronymic')
+            private_fields.add("patronymic")
         if confidentiality & Confidentiality.HIDE_SURNAME:
-            private_fields.add('surname')
+            private_fields.add("surname")
         if confidentiality & Confidentiality.HIDE_BIRTHDATE:
-            private_fields.add('date_of_birth')
+            private_fields.add("date_of_birth")
         if confidentiality & Confidentiality.HIDE_TELEPHONE:
-            private_fields.add('telephone')
+            private_fields.add("telephone")
         if confidentiality & Confidentiality.HIDE_EMAIL:
-            private_fields.add('email')
+            private_fields.add("email")
         if confidentiality & Confidentiality.HIDE_CHANNELS:
-            private_fields.add('channels')
+            private_fields.add("channels")
         if confidentiality & Confidentiality.HIDE_CATEGORIES:
-            private_fields.add('favorites_categories')
+            private_fields.add("favorites_categories")
         return private_fields
 
     def get_private_field_names(self) -> Set[str]:
         return self._get_private_field_names(self.confidentiality)
 
     @classmethod
-    def get_by_login(cls, db_session: Session, login: str) -> Optional['User']:
+    def get_by_login(cls, db_session: Session, login: str) -> Optional["User"]:
         return cls.get_first_by_filter(
-            db_session,
-            (cls.username == login) | (cls.telephone == login) | (cls.email == login)
+            db_session, (cls.username == login) | (cls.telephone == login) | (cls.email == login)
         )
