@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "itmo-meetings"
+version = "0.1.0"
+description = "A website for searching for events of interest."
+authors = ["klim405"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.104.1"
+python-multipart = "^0.0.6"
+python-jose = "^3.3.0"
+werkzeug = "^2.3.7"
+sqlalchemy = "^2.0.23"
+email-validator = "^2.1.0.post1"
+pydantic_extra_types = "^2.1.0"
+phonenumbers = "^8.13.25"
+pytz = "^2023.3.post1"
+"psycopg2.binary" = "^2.9.9"
+uvicorn = "^0.24.0.post1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

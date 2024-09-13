@@ -4,3 +4,7 @@ venv
 docs/backend
 backend/README.md
 backend/build
+
+.env
+poetry.lock
+poetry.toml
