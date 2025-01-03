@@ -45,7 +45,7 @@ class User(Base):
     username = mapped_column(String(20), unique=True, nullable=True)
     telephone = mapped_column(String(64), unique=True, nullable=False)
     email = mapped_column(String(320), unique=True, nullable=False)
-    password_hash = mapped_column(String(128), nullable=False)
+    password_hash = mapped_column(String(182), nullable=False)
 
     # personal info
     firstname = mapped_column(String(20), nullable=False)
@@ -71,7 +71,9 @@ class User(Base):
 
     @password.setter
     def password(self, plain_password):
-        self.password_hash = generate_password_hash(plain_password, method="pbkdf2:sha512:600000", salt_length=32)
+        self.password_hash = generate_password_hash(
+            plain_password, method="pbkdf2:sha512:600000", salt_length=32
+        )
 
     def verify_password(self, plain_password):
         return check_password_hash(self.password_hash, plain_password)
