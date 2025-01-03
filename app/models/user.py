@@ -71,7 +71,7 @@ class User(Base):
 
     @password.setter
     def password(self, plain_password):
-        self.password_hash = generate_password_hash(plain_password, method="pbkdf2:sha512", salt_length=32)
+        self.password_hash = generate_password_hash(plain_password, method="pbkdf2:sha512:600000", salt_length=32)
 
     def verify_password(self, plain_password):
         return check_password_hash(self.password_hash, plain_password)
