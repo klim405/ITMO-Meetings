@@ -42,14 +42,16 @@ async def get_meeting(
     if channel is not None:
         criteria.append(Meeting.channel_id == channel)
     if not curr_user_info.is_staff:
-        curr_user_channel_ids = list(map(
-            lambda cm: cm.channel.id,
-            await ChannelMember.filter(
-                db,
-                ChannelMember.user_id == curr_user_info.id,
-                ChannelMember.permissions != Role.CONFIRM_WAITER,
-            ),
-        ))
+        curr_user_channel_ids = list(
+            map(
+                lambda cm: cm.channel.id,
+                await ChannelMember.filter(
+                    db,
+                    ChannelMember.user_id == curr_user_info.id,
+                    ChannelMember.permissions != Role.CONFIRM_WAITER,
+                ),
+            )
+        )
         criteria.append(Meeting.channel_id.in_(curr_user_channel_ids))
     meeting_list = await Meeting.filter(db, *criteria)
     return meeting_list
@@ -111,7 +113,9 @@ async def update_meeting(
     name="Удалить мероприятие",
     description="Удаляет мероприятие без возможности восстановления.",
 )
-async def delete_meeting(db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]):
+async def delete_meeting(
+    db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]
+):
     meeting = await get_or_404(Meeting, db, id=meeting_id)
     curr_member = await get_current_channel_member(db, curr_user_info, meeting.channel_id)
     curr_member.has_permission_or_403(Permission.DELETE_MEETING)
@@ -127,7 +131,9 @@ async def delete_meeting(db: DBSessionDep, curr_user_info: CurrentUserDep, meeti
     "(т. е. нет мест), возвращает HTTP 403 (Отказано в доступе).",
     tags=["Участник мероприятия (meeting member)"],
 )
-async def join_to_meeting(db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]):
+async def join_to_meeting(
+    db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]
+):
     meeting = await get_or_404(Meeting, db, id=meeting_id)
     curr_member = await get_current_channel_member(db, curr_user_info, meeting.channel_id)
     curr_member.has_permission_or_403(Permission.JOIN_TO_MEETING)
@@ -164,7 +170,9 @@ async def get_meeting_members(
     "Метод ничего не возвращает.",
     tags=["Участник мероприятия (meeting member)"],
 )
-async def leave_meeting(db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]):
+async def leave_meeting(
+    db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]
+):
     meeting = await get_or_404(Meeting, db, id=meeting_id)
     user = await curr_user_info.get_model(db)
     if user not in await meeting.awaitable_attrs.members:
@@ -204,7 +212,9 @@ async def kick_channel_member(
     tags=["Отзывы мероприятий (meeting feedbacks)"],
     response_model=ReadFeedback,
 )
-async def get_feedback(db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]):
+async def get_feedback(
+    db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]
+):
     return await get_or_404(Feedback, db, meeting_id=meeting_id, user_id=curr_user_info.id)
 
 
@@ -256,6 +266,8 @@ async def update_feedback(
     "Если отзыва не существует, то возвращается HTTP 404 (Объект не найден).",
     tags=["Отзывы мероприятий (meeting feedbacks)"],
 )
-async def delete_feedback(db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]):
+async def delete_feedback(
+    db: DBSessionDep, curr_user_info: CurrentUserDep, meeting_id: Annotated[int, Path(ge=1)]
+):
     feedback = await get_or_404(Feedback, db, meeting_id=meeting_id, user_id=curr_user_info.id)
     await feedback.delete(db)

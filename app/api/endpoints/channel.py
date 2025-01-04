@@ -297,7 +297,9 @@ async def give_owner_role(
     "Для владельцев личного сообщества (канала) операция не невозможна.",
     tags=["Участники сообщества (channel members)"],
 )
-async def unsubscribe(db: DBSessionDep, curr_user_info: CurrentUserDep, channel_id: Annotated[int, Path(ge=1)]):
+async def unsubscribe(
+    db: DBSessionDep, curr_user_info: CurrentUserDep, channel_id: Annotated[int, Path(ge=1)]
+):
     curr_member = await get_or_404(ChannelMember, db, user_id=curr_user_info.id, channel_id=channel_id)
     if curr_member is None:
         raise HTTPException(

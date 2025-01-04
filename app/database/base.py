@@ -1,10 +1,10 @@
-from typing import Any, Optional, Self, Type, Union, Tuple, Sequence
+from typing import Any, Optional, Self, Sequence, Tuple, Type, Union
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy import ColumnExpressionArgument, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncAttrs
+from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -14,13 +14,14 @@ class Base(AsyncAttrs, DeclarativeBase):
         return await async_session.get(cls, pk)
 
     @classmethod
-    async def get_all(cls, async_session: AsyncSession, *, offset: int = 0, limit: int | None = None) -> Sequence[Self]:
+    async def get_all(
+        cls, async_session: AsyncSession, *, offset: int = 0, limit: int | None = None
+    ) -> Sequence[Self]:
         stmt = select(cls).offset(offset)
         if limit is not None:
             stmt = stmt.limit(limit)
         result = await async_session.execute(stmt)
         return result.scalars().all()
-
 
     @classmethod
     async def get_first_by_filter(
@@ -30,13 +31,13 @@ class Base(AsyncAttrs, DeclarativeBase):
         result = await async_session.execute(stmt)
         return result.scalars().first()
 
-
     @classmethod
-    async def filter(cls, async_session: AsyncSession, *criterion: ColumnExpressionArgument[bool]) -> Sequence[Self]:
+    async def filter(
+        cls, async_session: AsyncSession, *criterion: ColumnExpressionArgument[bool]
+    ) -> Sequence[Self]:
         stmt = select(cls).filter(*criterion)
         result = await async_session.execute(stmt)
         return result.scalars().all()
-
 
     @classmethod
     async def create(
@@ -58,7 +59,6 @@ class Base(AsyncAttrs, DeclarativeBase):
         new_obj = cls(**creating_data)
         await new_obj.save(async_session)
         return new_obj
-
 
     async def update(
         self,

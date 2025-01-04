@@ -6,7 +6,9 @@ from app.models import Channel, ChannelMember, User
 from app.models.channel_member import Role
 
 
-async def get_current_channel_member(db_session: AsyncSession, curr_user: UserInfo, channel_id: int) -> ChannelMember:
+async def get_current_channel_member(
+    db_session: AsyncSession, curr_user: UserInfo, channel_id: int
+) -> ChannelMember:
     member = await ChannelMember.get(db_session, user_id=curr_user.id, channel_id=channel_id)
     if member is not None:
         return member
