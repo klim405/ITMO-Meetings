@@ -5,7 +5,8 @@ from typing import Optional, Set
 from sqlalchemy import Boolean, Date
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.orm import Session, mapped_column, relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import mapped_column, relationship
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.database import Base
@@ -106,7 +107,7 @@ class User(Base):
         return self._get_private_field_names(self.confidentiality)
 
     @classmethod
-    def get_by_login(cls, db_session: Session, login: str) -> Optional["User"]:
-        return cls.get_first_by_filter(
+    async def get_by_login(cls, db_session: AsyncSession, login: str) -> Optional["User"]:
+        return await cls.get_first_by_filter(
             db_session, (cls.username == login) | (cls.telephone == login) | (cls.email == login)
         )

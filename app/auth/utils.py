@@ -2,14 +2,14 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from jose import jwt
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import User
 from app.settings import settings
 
 
-def authenticate_user(db_session: Session, login: str, password: str) -> User:
-    user = User.get_by_login(db_session, login)
+async def authenticate_user(db_session: AsyncSession, login: str, password: str) -> User:
+    user = await User.get_by_login(db_session, login)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

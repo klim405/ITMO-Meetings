@@ -1,10 +1,10 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.channel_member import ChannelMember, Role
 from app.models.user import User
 
 
-def delete_owner(db_session: Session, old_owner: ChannelMember):
+async def delete_owner(db_session: AsyncSession, old_owner: ChannelMember):
     channel = old_owner.channel
     members = channel.members
     if len(members) > 1:  # Если у кана есть другие участники, то права владельца передаются
@@ -14,16 +14,16 @@ def delete_owner(db_session: Session, old_owner: ChannelMember):
         new_owner.permissions = Role.OWNER
         new_owner.is_owner = True
         db_session.add(new_owner)
-        db_session.delete(old_owner)
+        await db_session.delete(old_owner)
     else:  # Иначе канал деактивируется
         channel.is_active = False
         db_session.add(channel)
-    db_session.commit()
+    await db_session.commit()
 
 
-def deactivate_user(db_session: Session, user: User):
+async def deactivate_user(db_session: AsyncSession, user: User):
     # Находим информацию о сообществах, где владелец деактивируемый пользователь.
-    owner_members = ChannelMember.filter(
+    owner_members = await ChannelMember.filter(
         db_session, (ChannelMember.user_id == user.id) & (ChannelMember.is_owner == True)  # noqa: E712
     )
     for owner_member in owner_members:
@@ -48,5 +48,5 @@ def deactivate_user(db_session: Session, user: User):
                 db_session.add(channel)
     user.is_active = False
     db_session.add(user)
-    db_session.commit()
-    db_session.refresh(user)
+    await db_session.commit()
+    await db_session.refresh(user)

@@ -20,8 +20,8 @@ router = APIRouter()
     "либо какое-то уникальное поле не уникально, то возвращается HTTP 422 (Не обрабатываемая сущность)",
     response_model=schemas.ReadUser,
 )
-def create_user(db: DBSessionDep, creating_data: schemas.CreateUser):
-    new_user = User.create(db, creating_data)
+async def create_user(db: DBSessionDep, creating_data: schemas.CreateUser):
+    new_user = await User.create(db, creating_data)
     return new_user
 
 
@@ -31,8 +31,8 @@ def create_user(db: DBSessionDep, creating_data: schemas.CreateUser):
     description="Возвращает текущего (авторизованного) пользователя.",
     response_model=schemas.ReadUser,
 )
-def get_curr_user(db: DBSessionDep, user: Annotated[UserInfo, Depends(get_current_user)]):
-    return user.get_model(db)
+async def get_curr_user(db: DBSessionDep, user: Annotated[UserInfo, Depends(get_current_user)]):
+    return await user.get_model(db)
 
 
 @router.patch(
@@ -41,13 +41,13 @@ def get_curr_user(db: DBSessionDep, user: Annotated[UserInfo, Depends(get_curren
     description="Устанавливает новый пароль текущему пользователю.",
     response_model=schemas.ReadUser,
 )
-def change_user_password(
+async def change_user_password(
     db: DBSessionDep,
     curr_user_info: Annotated[UserInfo, Depends(get_current_user)],
     new_password: schemas.ChangeUserPassword,
 ):
-    curr_user = curr_user_info.get_model(db)
-    curr_user.update(db, new_password)
+    curr_user = await curr_user_info.get_model(db)
+    await curr_user.update(db, new_password)
     return curr_user
 
 
@@ -63,9 +63,9 @@ def change_user_password(
     "то сообщество деактивируется, в дальнейшем владелец может его восстановить. "
     "Личное сообщество (канал) деактивируется.",
 )
-def deactivate_curr_user(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get_current_user)]):
-    user = user_info.get_model(db)
-    utils.deactivate_user(db, user)
+async def deactivate_curr_user(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get_current_user)]):
+    user = await user_info.get_model(db)
+    await utils.deactivate_user(db, user)
 
 
 @router.get(
@@ -75,8 +75,8 @@ def deactivate_curr_user(db: DBSessionDep, user_info: Annotated[UserInfo, Depend
     "В выборку попадают все сообщества (каналы) где текущий пользователь участник или подписчик.",
     response_model=List[ChannelMemberWithChannel],
 )
-def get_my_channels(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get_current_user)]):
-    return ChannelMember.filter(db, ChannelMember.user_id == user_info.id)
+async def get_my_channels(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get_current_user)]):
+    return await ChannelMember.filter(db, ChannelMember.user_id == user_info.id)
 
 
 @router.get(
@@ -86,8 +86,8 @@ def get_my_channels(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get
     "то все конфиденциальные поля НЕ скрыты, иначе значение этих полей установлены в null.",
     response_model=List[schemas.ReadOpenUserInfo],
 )
-def get_user_list(db: DBSessionDep, curr_user: Annotated[UserInfo, Depends(get_current_user)]):
-    user_list = User.get_all(db)
+async def get_user_list(db: DBSessionDep, curr_user: Annotated[UserInfo, Depends(get_current_user)]):
+    user_list = await User.get_all(db)
     if curr_user.is_staff:
         return user_list
     return map(schemas.get_open_user_info, user_list)
@@ -101,12 +101,12 @@ def get_user_list(db: DBSessionDep, curr_user: Annotated[UserInfo, Depends(get_c
     "то конфиденциальные поля установлены в null.",
     response_model=schemas.ReadOpenUserInfo,
 )
-def get_user(
+async def get_user(
     db: DBSessionDep,
     curr_user: Annotated[UserInfo, Depends(get_current_user)],
     user_id: Annotated[int, Path(ge=1, examples=[1])],
 ):
-    user = get_or_404(User, db, id=user_id)
+    user = await get_or_404(User, db, id=user_id)
     if curr_user.is_staff or curr_user.id == user_id:
         return user
     return schemas.get_open_user_info(user)
@@ -118,18 +118,18 @@ def get_user(
     description="Обновляет все обязательные поля.",
     response_model=schemas.ReadUser,
 )
-def update_user(
+async def update_user(
     db: DBSessionDep,
     curr_user: Annotated[User, Depends(get_current_user)],
     user_id: Annotated[int, Path(ge=1, examples=[1])],
     updating_data: schemas.UpdateUser,
 ):
-    user = get_or_404(User, db, id=user_id)
+    user = await get_or_404(User, db, id=user_id)
     if not curr_user.is_staff and user.id != curr_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to update user."
         )
-    user.update(db, updating_data)
+    await user.update(db, updating_data)
     return user
 
 
@@ -146,19 +146,19 @@ def update_user(
     "то сообщество деактивируется, в дальнейшем владелец может его восстановить. "
     "Личное сообщество (канал) деактивируется.",
 )
-def deactivate_user(
+async def deactivate_user(
     db: DBSessionDep,
     curr_user: Annotated[User, Depends(get_current_user)],
     user_id: Annotated[int, Path(ge=1, examples=[1])],
 ):
-    user = get_or_404(User, db, id=user_id)
+    user = await get_or_404(User, db, id=user_id)
     if not curr_user.is_staff and user.id != curr_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You do not have access to deactivate user.",
         )
-    utils.deactivate_user(db, user)
-    user.save(db)
+    await utils.deactivate_user(db, user)
+    await user.save(db)
 
 
 @router.get(
@@ -167,6 +167,6 @@ def deactivate_user(
     description="Возвращает все мероприятия в которых текущий пользователь является участником.",
     response_model=List[ReadMeeting],
 )
-def get_my_meeting(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get_current_user)]):
-    curr_user = user_info.get_model(db)
-    return curr_user.meetings
+async def get_my_meeting(db: DBSessionDep, user_info: Annotated[UserInfo, Depends(get_current_user)]):
+    curr_user = await user_info.get_model(db)
+    return await curr_user.awaitable_attrs.meetings

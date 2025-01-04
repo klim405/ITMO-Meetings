@@ -1,38 +1,47 @@
-from typing import Any, List, Optional, Self, Type
+from typing import Any, Optional, Self, Type, Union, Tuple, Sequence
 
 from fastapi import HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import ColumnExpressionArgument
+from sqlalchemy import ColumnExpressionArgument, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy.ext.asyncio import AsyncSession, AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase
 
 
-class Base(DeclarativeBase):
+class Base(AsyncAttrs, DeclarativeBase):
     @classmethod
-    def get(cls, db_session: Session, **pk) -> Optional[Self]:
-        return db_session.query(cls).get(pk)
+    async def get(cls, async_session: AsyncSession, **pk: Union[Any, Tuple[Any, ...]]) -> Optional[Self]:
+        return await async_session.get(cls, pk)
 
     @classmethod
-    def get_all(cls, db_session: Session, *, offset: int = 0, limit: int | None = None) -> List[Self]:
-        query = db_session.query(cls).offset(offset)
+    async def get_all(cls, async_session: AsyncSession, *, offset: int = 0, limit: int | None = None) -> Sequence[Self]:
+        stmt = select(cls).offset(offset)
         if limit is not None:
-            return query.limit(limit).all()
-        return query.all()
+            stmt = stmt.limit(limit)
+        result = await async_session.execute(stmt)
+        return result.scalars().all()
+
 
     @classmethod
-    def get_first_by_filter(
-        cls, db_session: Session, *criterion: ColumnExpressionArgument[bool]
+    async def get_first_by_filter(
+        cls, async_session: AsyncSession, *criterion: ColumnExpressionArgument[bool]
     ) -> Optional[Self]:
-        return db_session.query(cls).filter(*criterion).first()
+        stmt = select(cls).filter(*criterion).limit(1)
+        result = await async_session.execute(stmt)
+        return result.scalars().first()
+
 
     @classmethod
-    def filter(cls, db_session: Session, *criterion: ColumnExpressionArgument[bool]) -> List[Self]:
-        return db_session.query(cls).filter(*criterion).all()
+    async def filter(cls, async_session: AsyncSession, *criterion: ColumnExpressionArgument[bool]) -> Sequence[Self]:
+        stmt = select(cls).filter(*criterion)
+        result = await async_session.execute(stmt)
+        return result.scalars().all()
+
 
     @classmethod
-    def create(
+    async def create(
         cls,
-        db_session: Session,
+        async_session: AsyncSession,
         schema: BaseModel,
         *,
         include: dict[str, Any] | None = None,
@@ -47,12 +56,13 @@ class Base(DeclarativeBase):
             exclude_defaults=exclude_defaults,
         )
         new_obj = cls(**creating_data)
-        new_obj.save(db_session)
+        await new_obj.save(async_session)
         return new_obj
 
-    def update(
+
+    async def update(
         self,
-        db_session: Session,
+        session: AsyncSession,
         schema: BaseModel,
         *,
         include: dict[str, Any] | None = None,
@@ -68,19 +78,19 @@ class Base(DeclarativeBase):
         )
         for field, value in updating_data.items():
             setattr(self, field, value)
-        self.save(db_session)
+        await self.save(session)
 
-    def save(self, db_session: Session) -> None:
+    async def save(self, async_session: AsyncSession) -> None:
         try:
-            db_session.add(self)
-            db_session.commit()
-            db_session.refresh(self)
+            async_session.add(self)
+            await async_session.commit()
+            await async_session.refresh(self)
         except IntegrityError as e:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{e.orig}")
 
-    def delete(self, db_session: Session) -> None:
-        db_session.delete(self)
-        db_session.commit()
+    async def delete(self, async_session: AsyncSession) -> None:
+        await async_session.delete(self)
+        await async_session.commit()
 
     def convert_to(self, schema: Type[BaseModel]) -> BaseModel:
         return schema.model_validate(self)

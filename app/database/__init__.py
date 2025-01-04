@@ -1,8 +1,4 @@
 from app.database.base import Base
-from app.database.core import engine
+from app.database.core import async_engine
 
-__all__ = ["engine", "init_db", "Base"]
-
-
-def init_db() -> None:
-    Base.metadata.create_all(bind=engine)
+__all__ = ["async_engine", "Base"]

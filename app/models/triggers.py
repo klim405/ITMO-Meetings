@@ -1,7 +1,11 @@
 from sqlalchemy import Connection, event, insert, text, update
 from sqlalchemy.orm import Mapper
 
-from app.models import Channel, ChannelMember, Feedback, Meeting, User
+from app.models.channel import Channel
+from app.models.channel_member import ChannelMember
+from app.models.feedback import Feedback
+from app.models.meeting import Meeting
+from app.models.user import User
 
 
 @event.listens_for(User, "after_insert")
