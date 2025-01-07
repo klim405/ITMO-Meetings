@@ -5,11 +5,11 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import settings
 from app.auth.schemas import TokenData
 from app.database.core import make_async_session
 from app.database.utils import get_or_404
 from app.models import User
-from app.settings import settings
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
@@ -31,7 +31,7 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     )
     async with make_async_session() as db_session:
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.TOKEN_CIPHER_ALGORITHM])
+            payload = jwt.decode(token, settings.auth.jwt_secret, algorithms=[settings.auth.jwt_algorithm])
             user_id: str = payload.get("sub")
             if user_id is None:
                 raise token_exception

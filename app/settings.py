@@ -1,55 +1,47 @@
 import secrets
-from typing import Any, Dict, List, Optional
+from typing import List, Literal
 
-from pydantic.v1 import AnyHttpUrl, BaseSettings, PostgresDsn, validator
+from pydantic import AnyHttpUrl, PositiveInt
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy import URL
 
 
-class Settings(BaseSettings):
-    SECRET_KEY: str = secrets.token_urlsafe(32)
-    TOKEN_CIPHER_ALGORITHM: str = "HS256"
-    # 8 days * 24 hours * 60 minutes  = 8 days
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 8 * 24 * 60
-    SERVER_NAME: str = "ITMOMeetings"
+class ServerSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="server_", extra="allow")
     # BACKEND_CORS_ORIGINS is a JSON-formatted list of origins
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
-
-    POSTGRES_SERVER: str
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    DATABASE_URI: Optional[PostgresDsn] = None
-    ASYNC_DATABASE_URI: Optional[PostgresDsn] = None
-
-    @validator("DATABASE_URI", pre=True)
-    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
-        if isinstance(v, str):
-            return v
-        return PostgresDsn.build(
-            scheme="postgresql",
-            user=values.get("POSTGRES_USER"),
-            password=values.get("POSTGRES_PASSWORD"),
-            host=values.get("POSTGRES_SERVER"),
-            path=f"/{values.get('POSTGRES_DB') or ''}",
-        )
-
-    @validator("ASYNC_DATABASE_URI", pre=True)
-    def assemble_async_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
-        if isinstance(v, str):
-            return v
-        return PostgresDsn.build(
-            scheme="postgresql+asyncpg",
-            user=values.get("POSTGRES_USER"),
-            password=values.get("POSTGRES_PASSWORD"),
-            host=values.get("POSTGRES_SERVER"),
-            path=f"/{values.get('POSTGRES_DB') or ''}",
-        )
-
-    SERVER_TIMEZONE: str = "UTC"
-
-    class Config:
-        case_sensitive = True
+    cors_origins: List[AnyHttpUrl] = []
+    timezone: str = "UTC"
 
 
-settings = Settings()
+class AuthSettings(BaseSettings):
+    jwt_secret: str = secrets.token_urlsafe(32)
+    jwt_algorithm: str = "HS256"
+    access_token_lifetime_in_min: int = 5
+
+
+class PostgresSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="postgres_", extra="allow")
+
+    user: str
+    password: str
+    host: str
+    port: PositiveInt = 5432
+    db: str
+
+    def get_url(self, driver: Literal["asyncpg", "psycopg2"] = "asyncpg"):
+        return URL(
+            drivername=f"postgresql+{driver}",
+            username=self.user,
+            password=self.password,
+            host=self.host,
+            port=self.port,
+            database=self.db,
+            query="",
+        ).render_as_string(hide_password=False)
+
+
+server = ServerSettings()
+auth = AuthSettings()
+postgres = PostgresSettings()
