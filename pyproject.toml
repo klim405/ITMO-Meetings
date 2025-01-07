@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "itmo-meetings"
+name = "ITMO-Meetings"
 version = "0.1.0"
 description = "A website for searching for events of interest."
 authors = ["klim405"]
