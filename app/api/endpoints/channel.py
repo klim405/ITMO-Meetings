@@ -1,9 +1,8 @@
 from typing import Annotated, List, Literal, Set
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, status
+from fastapi import APIRouter, HTTPException, Path, Query, status
 
-from app.api.deps import get_current_channel_member
-from app.auth.deps import CurrentUserDep, get_current_user, login_required
+from app.api.deps import AccessTokenDep, LoginRequiredDep, get_current_channel_member
 from app.database.deps import DBSessionDep
 from app.database.utils import get_or_404
 from app.models import Channel, ChannelMember
@@ -19,7 +18,7 @@ router = APIRouter()
     "/list/",
     name="Получить список каналов.",
     description="Возвращает все каналы, которые не удалены (активны).",
-    dependencies=[login_required],
+    dependencies=[LoginRequiredDep],
     response_model=List[ReadChannel],
 )
 async def get_channel_list(db: DBSessionDep):
@@ -32,10 +31,10 @@ async def get_channel_list(db: DBSessionDep):
     description="Возвращает канал текущего пользователя.",
     response_model=ReadChannel,
 )
-async def update_channel(db: DBSessionDep, curr_user_info: CurrentUserDep):
+async def update_channel(db: DBSessionDep, token: AccessTokenDep):
     curr_channel_member = await ChannelMember.get_first_by_filter(
         db,
-        ChannelMember.user_id == curr_user_info.id,
+        ChannelMember.user_id == token.user_id,
         ChannelMember.is_owner == True,  # noqa: E712
         ChannelMember.channel.has(is_personal=True),
     )
@@ -53,7 +52,7 @@ async def update_channel(db: DBSessionDep, curr_user_info: CurrentUserDep):
     "/{channel_id}/",
     name="Получить сообщество (канал)",
     response_model=ReadChannel,
-    dependencies=[Depends(get_current_user)],
+    dependencies=[LoginRequiredDep],
 )
 async def get_channel(db: DBSessionDep, channel_id: Annotated[int, Path(ge=1)]):
     return await get_or_404(Channel, db, id=channel_id)
@@ -66,10 +65,10 @@ async def get_channel(db: DBSessionDep, channel_id: Annotated[int, Path(ge=1)]):
     "Текущий пользователь автоматически становится владельцем и участником канала.",
     response_model=ReadChannel,
 )
-async def create_channel(db: DBSessionDep, user: CurrentUserDep, creating_data: CreateChannel):
+async def create_channel(db: DBSessionDep, token: AccessTokenDep, creating_data: CreateChannel):
     new_channel = await Channel.create(db, creating_data)
     channel_member = ChannelMember(
-        channel_id=new_channel.id, user_id=user.id, permissions=Role.OWNER, is_owner=True
+        channel_id=new_channel.id, user_id=token.user_id, permissions=Role.OWNER, is_owner=True
     )
     await channel_member.save(db)
     return channel_member.channel
@@ -85,11 +84,11 @@ async def create_channel(db: DBSessionDep, user: CurrentUserDep, creating_data: 
 )
 async def update_channel(  # noqa: F811
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     updating_data: UpdateChannel,
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     curr_member.has_permission_or_403(Permission.UPDATE_CHANNEL)
     channel = curr_member.channel
     await channel.update(db, updating_data)
@@ -102,9 +101,9 @@ async def update_channel(  # noqa: F811
     description="Удаляет (деактивирует) сообщество.",
 )
 async def deactivate_channel(  # noqa: F811
-    db: DBSessionDep, curr_user_info: CurrentUserDep, channel_id: Annotated[int, Path(ge=1)]
+    db: DBSessionDep, token: AccessTokenDep, channel_id: Annotated[int, Path(ge=1)]
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     curr_member.has_permission_or_403(Permission.DELETE_CHANNEL)
     channel = curr_member.channel
     channel.is_active = False
@@ -120,11 +119,11 @@ async def deactivate_channel(  # noqa: F811
 )
 async def recovery_channel(
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     recovery_data: RecoveryChannel,
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     if curr_member.user.is_staff or curr_member.is_owner:
         channel = curr_member.channel
         await channel.update(db, recovery_data)
@@ -144,14 +143,14 @@ async def recovery_channel(
 )
 async def subscribe(
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     member_data: CreateChannelMember,
 ):
     channel = await get_or_404(Channel, db, id=channel_id)
     if channel.is_active:
         new_member = ChannelMember(
-            user_id=curr_user_info.id,
+            user_id=token.user_id,
             channel_id=channel.id,
             permissions=Role.MEMBER if channel.is_public else Role.CONFIRM_WAITER,
             notify_about_meeting=member_data.notify_about_meeting,
@@ -172,13 +171,13 @@ async def subscribe(
 )
 async def members(
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     roles: Annotated[
         Set[Literal["OWNER", "ADMIN", "EDITOR", "MEMBER", "BLOCKED", "CONFIRM_WAITER"]], Query()
     ],
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     curr_member.has_permission_or_403(Permission.SEE_SUBSCRIBERS)
     role_codes = list(map(lambda r: getattr(Role, r), roles))
     if role_codes:
@@ -206,11 +205,11 @@ async def members(
 )
 async def members(  # noqa: F811
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     member_id: Annotated[int, Path(description="This is target user id", ge=1)],
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     curr_member.has_permission_or_403(Permission.GIVE_ACCESS)
 
     target_member = await get_or_404(ChannelMember, db, channel_id=channel_id, user_id=member_id)
@@ -228,12 +227,12 @@ async def members(  # noqa: F811
 )
 async def edit_channel_member(
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     member_id: Annotated[int, Path(description="This is target user id", ge=1)],
     data: ChannelMemberRole,
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     curr_member.has_permission_or_403(Permission.GIVE_ACCESS)
 
     target_member = await get_or_404(ChannelMember, db, channel_id=channel_id, user_id=member_id)
@@ -263,11 +262,11 @@ async def edit_channel_member(
 )
 async def give_owner_role(
     db: DBSessionDep,
-    curr_user_info: CurrentUserDep,
+    token: AccessTokenDep,
     channel_id: Annotated[int, Path(ge=1)],
     member_id: Annotated[int, Path(description="This is target user id", ge=1)],
 ):
-    curr_member = await get_current_channel_member(db, curr_user_info, channel_id)
+    curr_member = await get_current_channel_member(db, token, channel_id)
     target_member = await get_or_404(ChannelMember, db, channel_id=channel_id, user_id=member_id)
     if target_member == curr_member:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You can not edit self.")
@@ -297,10 +296,8 @@ async def give_owner_role(
     "Для владельцев личного сообщества (канала) операция не невозможна.",
     tags=["Участники сообщества (channel members)"],
 )
-async def unsubscribe(
-    db: DBSessionDep, curr_user_info: CurrentUserDep, channel_id: Annotated[int, Path(ge=1)]
-):
-    curr_member = await get_or_404(ChannelMember, db, user_id=curr_user_info.id, channel_id=channel_id)
+async def unsubscribe(db: DBSessionDep, token: AccessTokenDep, channel_id: Annotated[int, Path(ge=1)]):
+    curr_member = await get_or_404(ChannelMember, db, user_id=token.user_id, channel_id=channel_id)
     if curr_member is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
