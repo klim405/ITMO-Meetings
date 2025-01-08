@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models import RefreshToken
 from app.models.channel_member import ChannelMember, Role
 from app.models.user import User
 
@@ -50,3 +51,4 @@ async def deactivate_user(db_session: AsyncSession, user: User):
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
+    await RefreshToken.revoke_all(db_session, user.id)

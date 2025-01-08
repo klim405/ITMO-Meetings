@@ -11,4 +11,4 @@ class ReadFeedback(FeedbackBase):
     rate: int = Field(ge=0, le=5)
 
     class Config:
-        orm_model = True
+        from_attributes = True

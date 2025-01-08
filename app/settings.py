@@ -19,6 +19,7 @@ class AuthSettings(BaseSettings):
     jwt_secret: str = secrets.token_urlsafe(32)
     jwt_algorithm: str = "HS256"
     access_token_lifetime_in_min: int = 5
+    refresh_token_lifetime_in_min: int = 30 * 24 * 60
 
 
 class PostgresSettings(BaseSettings):
