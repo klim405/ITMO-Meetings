@@ -4,6 +4,7 @@ venv
 docs/backend
 backend/README.md
 backend/build
+**/__pycache__
 
 .env
 poetry.lock
