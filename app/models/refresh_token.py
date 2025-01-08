@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, update, Uuid
+from sqlalchemy import DateTime, ForeignKey, Uuid, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,7 +17,9 @@ def _expires_at() -> datetime:
 class RefreshToken(Base):
     __tablename__ = "refresh_token"
 
-    id: Mapped[str] = mapped_column(Uuid(as_uuid=False), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    id: Mapped[str] = mapped_column(
+        Uuid(as_uuid=False), primary_key=True, index=True, default=lambda: str(uuid.uuid4())
+    )
     issues_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=_expires_at)
     is_active: Mapped[bool] = mapped_column(nullable=False, default=True)
