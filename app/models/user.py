@@ -46,6 +46,7 @@ class User(Base):
     username = mapped_column(String(20), unique=True, nullable=True)
     telephone = mapped_column(String(64), unique=True, nullable=False)
     email = mapped_column(String(320), unique=True, nullable=False)
+    is_email_verified = mapped_column(Boolean, nullable=False, default=False)
     password_hash = mapped_column(String(182), nullable=False)
 
     # personal info
