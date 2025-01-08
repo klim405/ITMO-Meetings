@@ -1,7 +1,7 @@
 from datetime import datetime
 
 import jwt
-from pydantic import BaseModel, Field, PositiveInt, AliasChoices
+from pydantic import AliasChoices, BaseModel, Field, PositiveInt
 
 from app import settings
 from app.models import RefreshToken, User

@@ -36,7 +36,7 @@ async def create_token(
     "/token",
     name="Обновить токен",
     description="Для выдачи нового токена доступа необходимо передать токен обновления. "
-                "После обновления токен доступа, токен обновления перестает быть действительным."
+    "После обновления токен доступа, токен обновления перестает быть действительным.",
 )
 async def refresh_access_token(db_session: DBSessionDep, data: RefreshTokenRequest) -> TokenResponse:
     try:
@@ -65,7 +65,7 @@ async def refresh_access_token(db_session: DBSessionDep, data: RefreshTokenReque
     "/token",
     name="Отозвать токены обновления",
     description="После выполнения данной операции все токены будут отозваны. "
-                "Операция возвращает новый токен доступа и обновления."
+    "Операция возвращает новый токен доступа и обновления.",
 )
 async def revoke_token(db_session: DBSessionDep, access_token: AccessTokenDep) -> TokenResponse:
     await RefreshToken.revoke_all(db_session, access_token.user_id)
