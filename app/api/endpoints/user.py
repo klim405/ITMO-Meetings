@@ -1,6 +1,6 @@
 from typing import Annotated, List
 
-from fastapi import APIRouter, HTTPException, Path, status
+from fastapi import APIRouter, HTTPException, Path, Query, status
 
 import app.schemas.user as schemas
 from app.api.deps import AccessTokenDep
@@ -9,6 +9,9 @@ from app.database.utils import get_or_404
 from app.models import ChannelMember, User, utils
 from app.schemas.complex_schemas import ChannelMemberWithChannel
 from app.schemas.meeting import ReadMeeting
+from app.utils.e_mail import send_confirm_email
+from app.utils.hash import verify_simple_hash
+from app.utils.urls import get_email_confirm_url
 
 router = APIRouter()
 
@@ -22,7 +25,34 @@ router = APIRouter()
 )
 async def create_user(db: DBSessionDep, creating_data: schemas.CreateUser):
     new_user = await User.create(db, creating_data)
+    send_confirm_email(new_user.email, get_email_confirm_url(new_user.id, new_user.email))
     return new_user
+
+
+@router.get("/confirm-email/")
+async def confirm_email(
+    db: DBSessionDep, user_id: Annotated[int, Query(alias="u")], token: Annotated[str, Query(alias="t")]
+):
+    user = await get_or_404(User, db, id=user_id)
+    if not verify_simple_hash(str(user_id) + user.email, token):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    if not user.is_email_verified:
+        user.is_email_verified = True
+        await user.save(db)
+    return "ok"
+
+
+@router.get(
+    "/me/send-confirm-email/",
+    name="Снова отправить письмо подтверждения",
+    description="Повторно отправляет письмо текущему пользователю.",
+)
+async def resend_confirm_email(db: DBSessionDep, token: AccessTokenDep):
+    curr_user = await get_or_404(User, db, id=token.user_id)
+    if curr_user.is_email_verified:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+    send_confirm_email(curr_user.email, get_email_confirm_url(curr_user.id, curr_user.email))
+    return "ok"
 
 
 @router.get(
@@ -129,7 +159,11 @@ async def update_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="You do not have access to update user."
         )
+    old_email = user.email
     await user.update(db, updating_data)
+    if old_email != user.email:
+        user.is_email_verified = False
+        send_confirm_email(user.email, get_email_confirm_url(user.id, user.email))
     return user
 
 

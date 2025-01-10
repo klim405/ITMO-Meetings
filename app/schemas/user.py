@@ -52,6 +52,7 @@ class ReadUser(UserBase):
     referrer_id: int | None = None
     confidentiality: int = DEFAULT_CONFIDENTIALITY
     is_staff: bool = False
+    is_email_verified: bool
 
     class Config:
         from_attributes = True
@@ -60,6 +61,7 @@ class ReadUser(UserBase):
 class ReadOpenUserInfo(BaseModel):
     id: int
     referrer_id: int | None = None
+    is_email_verified: bool
 
     username: str | None = None
     telephone: str | None = None

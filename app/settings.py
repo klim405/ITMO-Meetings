@@ -1,7 +1,7 @@
 import secrets
 from typing import List, Literal
 
-from pydantic import AnyHttpUrl, PositiveInt
+from pydantic import AnyHttpUrl, EmailStr, PositiveInt
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import URL
 
@@ -12,6 +12,9 @@ class ServerSettings(BaseSettings):
     # e.g: '["http://localhost", "http://localhost:4200", "http://localhost:3000", \
     # "http://localhost:8080", "http://local.dockertoolbox.tiangolo.com"]'
     cors_origins: List[AnyHttpUrl] = []
+    host: str = "localhost"
+    port: PositiveInt = 8000
+    path_prefix: str = ""
     timezone: str = "UTC"
 
 
@@ -43,6 +46,23 @@ class PostgresSettings(BaseSettings):
         ).render_as_string(hide_password=False)
 
 
+class EmailSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="email_", extra="allow")
+
+    sender: EmailStr
+    password: str
+    smtp_host: str = "smtp.gmail.com"
+    ssl_port: int = 465
+
+
+class UtilsSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="utils_", extra="allow")
+
+    simple_hash_pepper: str
+
+
 server = ServerSettings()
 auth = AuthSettings()
 postgres = PostgresSettings()
+email = EmailSettings()
+utils = UtilsSettings()
